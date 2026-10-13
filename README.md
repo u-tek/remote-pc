@@ -62,9 +62,11 @@ iPhone app (SwiftUI)                                     agent (Node.js, runs on
 
 ## 2. Install the app on the iPhone
 
-The IPA is built by GitHub Actions on every push that touches `ios/`:
+The IPA is built by GitHub Actions on every push that touches `ios/`, and every build on `main` is
+committed as [`builds/RemotePC.ipa`](builds/RemotePC.ipa), so the latest app is always on `main`.
+Also:
 
-- **Actions** tab → **iOS app** → latest successful run → download the **RemotePC-ipa** artifact (a zip containing `RemotePC.ipa`), or
+- **Actions** tab → **iOS app** → any successful run (other branches too) → the **RemotePC-ipa** artifact (a zip containing `RemotePC.ipa`), or
 - push a tag like `v0.1.0` and the IPA is attached to a GitHub **Release**.
 
 Install it with [SideStore](https://sidestore.io) or [AltStore](https://altstore.io) using your free Apple ID. Free signing expires every 7 days; SideStore can refresh on the phone itself, AltStore refreshes from AltServer on your PC. (A paid Apple Developer account would remove the 7-day limit and allow real push notifications.)
@@ -167,4 +169,5 @@ ios/     SwiftUI app (iOS 17+)               brew install xcodegen && cd ios && 
   RemotePC/Views/Apps/                       native renderer and home screen
 sdk/     Phone UI SDK                        PROTOCOL.md, node/, python/, csharp/, examples/
 .github/workflows/                           agent tests on Linux + Windows, unsigned IPA build on macOS
+builds/RemotePC.ipa                          latest IPA from main (committed by CI)
 ```

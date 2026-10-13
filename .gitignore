@@ -5,6 +5,7 @@ ios/*.xcodeproj/
 ios/*.xcworkspace/
 dist/
 *.ipa
+!builds/RemotePC.ipa
 .DS_Store
 xcuserdata/
 __pycache__/
