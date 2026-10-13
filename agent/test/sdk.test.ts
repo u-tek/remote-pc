@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import WebSocket from 'ws';
 import type { AppView, ServerMessage } from '../src/ui/schema.js';
 import { startTestAgent, waitFor, type TestAgent } from './helpers.js';
@@ -21,7 +21,7 @@ const CLIENTS: Record<string, { skip?: string; start(env: NodeJS.ProcessEnv): Ch
         [
           '--input-type=module',
           '-e',
-          `import { PhoneApp, ui } from ${JSON.stringify(path.join(SDK, 'node', 'index.js'))};
+          `import { PhoneApp, ui } from ${JSON.stringify(pathToFileURL(path.join(SDK, 'node', 'index.js')).href)};
            let count = 0, name = '';
            const app = new PhoneApp({ id: 'counter-node', name: 'Counter' }, () => ui.screen('Count ' + count, [ui.button('Add', () => count++), ui.field('Name', name, (v) => (name = v)), ui.text('Hi ' + name)]));
            await app.connect();`,
