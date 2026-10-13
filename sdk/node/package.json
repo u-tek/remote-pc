@@ -1,0 +1,19 @@
+{
+  "name": "remote-pc-sdk",
+  "version": "0.1.0",
+  "description": "Show your program on the iPhone as a native app through the Remote PC agent.",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "files": ["index.js", "index.d.ts", "README.md"],
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}

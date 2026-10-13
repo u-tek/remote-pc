@@ -1,30 +1,43 @@
 # Remote PC
 
-An iPhone app plus a small Windows companion ("the agent") that puts your PC in your pocket:
+An iPhone app plus a small Windows companion ("the agent") that turns your PC into a phone:
+**every Windows app opens on the iPhone as a native iOS app** — real iOS lists, switches, pickers,
+navigation, sheets and keyboards — not a shrunken desktop.
 
-- **Your actual desktop, live** — open the PC tab and you're looking at your real screen (with your wallpaper behind it). Tap *Take control* for a full-screen, low-latency stream you drive with your fingers: tap to click, hold to right-click, drag, two-finger scroll with momentum, pinch to zoom, or switch to **trackpad mode**. The iPhone keyboard types on the PC, with a key bar for Ctrl/Alt/Win, arrows, F-keys and shortcuts like Alt+Tab and Task Manager.
-- **Any PC app as a phone app** — tap the 📱 button on an open window (or *Open on phone* in Start) and that window is reshaped to your phone's proportions and streamed full screen, so a browser goes into its mobile layout and apps fill your screen. When you close it, the window goes back exactly where it was.
-- **Control Center for your PC** — volume, mute, play/pause/skip, lock, screen off, sleep, restart and shut down.
+- **Windows apps, rewritten for iPhone** — the Home tab shows your open PC apps as icons. Tap one
+  and it opens like an iPhone app: Settings becomes iOS-Settings-style grouped lists with toggles and
+  sliders, File Explorer a Files-style list with a folder sidebar, Calculator keeps its keypad,
+  dialogs become sheets and message boxes become iOS alerts, menus become native menus. The window
+  stays where it is on the PC and both stay in sync.
+  - It works with **any app**: a rules engine reads the app through Windows UI Automation (what
+    screen readers use) and rewrites it — finding the sidebar, toolbars, search, tabs, settings
+    rows, forms, lists, tables, documents, web content, keypads and dialogs.
+  - **Hand-tuned** for the apps you use most: **Chrome / Edge / Firefox** (pages as readable
+    articles with an address bar and a tab switcher), **Discord / Slack / Teams / WhatsApp** (chat
+    bubbles and a message box), **File Explorer** (save any file to your iPhone), **Settings**, and
+    **Word / Excel / PowerPoint / Outlook**.
+  - **Search to start** any installed app; it opens straight into its phone version.
+  - When something truly can't be rebuilt (a game, a video, a canvas), just that part shows live
+    and responds to touch — you never have to think about it.
+- **An SDK for your own tools** — any program or script on the PC can publish its own native
+  phone UI in a few lines of [Node](sdk/node), [Python](sdk/python), [C# or PowerShell](sdk/csharp).
+  See [sdk/](sdk).
 - **Claude Code & OpenCode** — start sessions in any project folder, chat with them, attach photos, stop them, switch Claude's permission mode, and pick up sessions you started at your desk (Claude Code sessions from the terminal show up too).
 - **Approvals on your phone** — when an agent wants to edit files or run a command, you get a card with **Allow / Always / Deny** (or "deny and explain"). Claude's plan reviews and multiple-choice questions come through as well.
-- **"Mobile Windows"** — phone-native screens for your PC:
-  - **Start** — searchable app grid with real icons, pins and recents; tap to launch on the PC.
-  - **Windows** — live thumbnails of open windows; tap to bring one to the front, or minimize / maximize / close.
-  - **Tasks** — Task Manager with CPU and memory meters, grouped processes and *End task*.
-  - **Clipboard** — pull the PC clipboard (text or image) to the phone, push text or photos to it.
-- **Files** — browse every drive, preview and share files, upload photos/videos/files, rename, make folders, delete to the Recycle Bin, or open a file on the PC.
-- **Web** — open web UIs running on the PC (dev servers, ComfyUI, Jupyter, Home Assistant…) in an in-app browser, even if they only listen on `localhost`. Ports in use are detected so you can add them with one tap.
+- **Tools** — Control Center (volume, media, lock, sleep, restart), Task Manager, clipboard sync, a Start menu, and **Files** (browse every drive, preview, share, upload).
+- **Web** — open web UIs running on the PC (dev servers, ComfyUI, Jupyter, Home Assistant…) even if they only listen on `localhost`.
+- **The whole screen, if you want it** — the *Screen* tool streams your real desktop with low latency (hardware H.264), touch or trackpad control and the iPhone keyboard.
 - **Security** — QR-code pairing with a random 256-bit token, Face ID app lock, and the agent listens only on your private Tailscale network by default.
 
 ```
-iPhone app (SwiftUI)  ──HTTP + WebSocket over Tailscale──▶  agent (Node.js, runs on your PC)
-  hardware H.264 decode ◀── live video (FLV → H.264) ──────  ├─ FFmpeg: Desktop Duplication → NVENC/AMF/QSV/x264
-  touches, keys ─────────── input ─────────────────────────▶  ├─ SendInput (mouse, keyboard, scroll, text)
-                                                              ├─ Claude Code (Agent SDK)
-                                                              ├─ OpenCode (opencode serve)
-                                                              ├─ PowerShell/C# helper → apps, windows, tasks, clipboard
-                                                              ├─ file system
-                                                              └─ port forwarder → localhost web UIs
+iPhone app (SwiftUI)                                     agent (Node.js, runs on your PC)
+  native screens ◀──── Phone UI views (JSON) ─────────  ├─ UI Automation helper (C#) → window trees, actions
+  taps, text ──────────── actions ────────────────────▶  ├─ rules engine + adapters → native views
+                                                         ├─ SDK endpoint ◀── your scripts and apps
+  live parts ◀────────── pictures / H.264 ────────────  ├─ FFmpeg: Desktop Duplication → NVENC/AMF/QSV/x264
+                                                         ├─ Claude Code (Agent SDK), OpenCode
+                                                         └─ files, clipboard, processes, web forwarding
+          all over HTTP + WebSocket on your Tailscale network
 ```
 
 ## 1. Set up the PC
@@ -60,13 +73,29 @@ Then open **Remote PC** → **Pair with my PC** → scan the QR code. You can al
 
 ## Using it
 
-### Live desktop
+### PC apps on your phone
 
-- **PC tab → Desktop** shows a live preview of your screen; tap **Take control**. Turn the phone sideways for the full desktop.
-- The first time you open it, the agent downloads FFmpeg (~150 MB, once) into `%APPDATA%\RemotePC\ffmpeg`. It then picks the fastest encoder that works on your PC: NVIDIA NVENC, AMD AMF, Intel Quick Sync, Media Foundation, or x264 on the CPU. If you already have FFmpeg, set `stream.ffmpeg` in the config.
-- Quality adapts automatically when the connection struggles; you can also pick it in the ⋯ menu (Sharp 1080p60 → Cellular saver). On the same Wi-Fi or a direct Tailscale connection it feels close to sitting at the PC.
-- **App mode**: the 📱 button on a window (PC → Windows, or the *Open on your phone* list on the Desktop page) streams just that window, resized to phone shape. Long-press a Start menu app → *Open on phone* to launch it straight into app mode.
-- Limits: Windows doesn't let normal apps see or control the **lock screen** or admin (UAC) prompts. Keep the PC unlocked while you want to use it remotely (Control Center's *Screen off* turns the monitor off without locking). Apps running as administrator also ignore input from non-admin programs.
+- **Home tab**: every open window is an app icon. Tap to open it natively; long-press for *Bring to
+  Front on PC*, *Live View* or *Close on PC*. Type in **Search apps** to start anything installed.
+- Apps open on their own home screen when they have a sidebar (Settings categories, Explorer
+  folders, chat channels) and push into pages like any iPhone app; Back goes back in the app.
+- Pickers whose choices only appear when opened on Windows (most dropdowns) load their choices the
+  first time you tap them; after that they are instant.
+- File Explorer: long-press a file → **Save to iPhone** / **Share**.
+- Changes go to the real app through UI Automation, so the PC doesn't need to be in front of you,
+  and you can keep using it at the desk at the same time. Typing into chat apps and browser address
+  bars briefly brings that window to the front on the PC.
+- Chrome/Electron apps (Discord, Slack, Teams, VS Code…) expose their full UI only while a screen
+  reader is "running"; the agent turns Windows' screen-reader flag on while the phone shows an app
+  (`ui.screenReaderFlag` in the config).
+- Apps running as administrator can't be read or controlled by a normal-user agent, and Windows
+  doesn't let any app see the lock screen. Keep the PC unlocked.
+
+### Live screen
+
+- **Home → Tools → Screen** streams your desktop; long-press an app → *Live View* streams one window.
+- The first time, the agent downloads FFmpeg (~150 MB, once) into `%APPDATA%\RemotePC\ffmpeg`, then picks the fastest encoder that works: NVIDIA NVENC, AMD AMF, Intel Quick Sync, Media Foundation, or x264. Quality adapts automatically; pick it in the ⋯ menu.
+- Tap to click, hold to right-click, drag, two-finger scroll, pinch to zoom, or switch to trackpad mode. The keyboard button types on the PC.
 
 ### Agents
 
@@ -93,6 +122,9 @@ Then open **Remote PC** → **Pair with my PC** → scan the QR code. You can al
 | `opencode.url` | – | Use an OpenCode server you already run |
 | `stream.quality` | `"balanced"` | Default live-desktop quality: `high`, `balanced`, `low`, `saver` |
 | `stream.ffmpeg` | – | Path to your own `ffmpeg.exe` (otherwise PATH or a copy downloaded on first use) |
+| `ui.screenReaderFlag` | `true` | Tell apps a screen reader is running while the phone shows them (needed for Chrome/Electron apps) |
+| `ui.pollMs` | `1000` | How often an open app is re-read when nothing is happening |
+| `ui.sdkToken` | random | Token SDK apps use (`sdk.json` next to the config holds it for them) |
 | `projects` | `[]` | Pinned project folders |
 | `web` | `[]` | Saved web apps (managed from the app) |
 
@@ -104,10 +136,12 @@ Other commands: `npm run pair` (show the QR again), `node dist\index.js uninstal
 - By default the agent only listens on its Tailscale address (plus `localhost`), so only devices on your tailnet can reach it. Traffic is encrypted by Tailscale (WireGuard).
 - The paired phone can do anything your Windows account can: read and write files, run agents, end processes. Treat the token like a password; rotate it with `npm run pair -- --new-token` if the phone is lost.
 - The live desktop uses the same token-protected connection; nothing streams unless the app is open on your phone.
+- Apps on the phone are read with UI Automation only while you have them open. SDK apps can only connect from the PC itself (`127.0.0.1`) with the separate SDK token, and can only publish their own UI.
 - Saved web apps are forwarded to your tailnet **without** the token, because the browser connects to them directly. Only save apps you are happy for your own devices to reach.
 
 ## More feature ideas (not built yet)
 
+- AI-assisted rewrites for apps the rules don't understand well, cached per app.
 - Live Activity / Dynamic Island progress and real push notifications (needs a paid Apple Developer account).
 - Siri Shortcuts ("Hey Siri, tell Claude to run the tests") and home-screen widgets.
 - Share-sheet extension: "Send to PC" from any app.
@@ -120,9 +154,17 @@ Other commands: `npm run pair` (show the QR again), `node dist\index.js uninstal
 ## Development
 
 ```
-agent/   Node.js + TypeScript agent        npm test · npm run typecheck · npm run dev
-  assets/helper.ps1, helper.cs              Windows helper (compiled by PowerShell at startup)
-  scripts/smoke-windows.mjs                 exercises the real helper (runs in CI on Windows)
-ios/     SwiftUI app (iOS 17+)              brew install xcodegen && cd ios && xcodegen generate
-.github/workflows/                          agent tests on Linux + Windows, unsigned IPA build on macOS
+agent/   Node.js + TypeScript agent         npm test · npm run typecheck · npm run dev
+  src/ui/schema.ts                           Phone UI protocol (source of truth)
+  src/ui/rules/                              rules engine: UI Automation tree → native views
+  src/ui/adapters/                           hand-tuned apps (browser, chat, explorer, settings, office)
+  src/ui/session.ts, routes.ts, sdk.ts       app sessions, /api/ui, /api/sdk
+  assets/ui.cs, ui.ps1                       UI Automation helper (compiled by PowerShell)
+  assets/helper.ps1, helper.cs               Windows helper for everything else
+  test/fixtures/uia/                         realistic window trees used by the rules tests
+ios/     SwiftUI app (iOS 17+)               brew install xcodegen && cd ios && xcodegen generate
+  RemotePC/Models/PhoneUI.swift              protocol models
+  RemotePC/Views/Apps/                       native renderer and home screen
+sdk/     Phone UI SDK                        PROTOCOL.md, node/, python/, csharp/, examples/
+.github/workflows/                           agent tests on Linux + Windows, unsigned IPA build on macOS
 ```
