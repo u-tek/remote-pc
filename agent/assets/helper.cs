@@ -618,30 +618,50 @@ namespace RemotePC
             finally { DeleteObject(hbm); }
         }
 
-        // Image.FromHbitmap drops the alpha channel; copy the raw 32-bit pixels instead.
+        [StructLayout(LayoutKind.Sequential)]
+        struct BITMAP { public int bmType, bmWidth, bmHeight, bmWidthBytes; public ushort bmPlanes, bmBitsPixel; public IntPtr bmBits; }
+        [StructLayout(LayoutKind.Sequential)]
+        struct BITMAPINFOHEADER
+        {
+            public uint biSize; public int biWidth, biHeight; public ushort biPlanes, biBitCount;
+            public uint biCompression, biSizeImage; public int biXPelsPerMeter, biYPelsPerMeter; public uint biClrUsed, biClrImportant;
+        }
+        [StructLayout(LayoutKind.Sequential)]
+        struct DIBSECTION { public BITMAP dsBm; public BITMAPINFOHEADER dsBmih; public uint dsBitfields0, dsBitfields1, dsBitfields2; public IntPtr dshSection; public uint dsOffset; }
+        [DllImport("gdi32.dll", EntryPoint = "GetObjectW")] static extern int GetObject(IntPtr h, int size, out DIBSECTION ds);
+
+        // Image.FromHbitmap drops the alpha channel (and letting GDI+ wrap the shell's DIB can read past
+        // it), so copy the DIB section's 32-bit pixels ourselves.
         static Bitmap WithAlpha(IntPtr hbm)
         {
-            Bitmap src = Image.FromHbitmap(hbm);
-            if (Image.GetPixelFormatSize(src.PixelFormat) < 32) return src;
-            Rectangle rect = new Rectangle(0, 0, src.Width, src.Height);
-            BitmapData data = src.LockBits(rect, ImageLockMode.ReadOnly, src.PixelFormat);
+            DIBSECTION ds;
+            int got = GetObject(hbm, Marshal.SizeOf(typeof(DIBSECTION)), out ds);
+            if (got < Marshal.SizeOf(typeof(BITMAP)) || ds.dsBm.bmBits == IntPtr.Zero || ds.dsBm.bmBitsPixel != 32)
+                return Image.FromHbitmap(hbm);
+            int w = ds.dsBm.bmWidth, h = ds.dsBm.bmHeight, stride = ds.dsBm.bmWidthBytes;
+            if (w <= 0 || h <= 0 || stride < w * 4) return Image.FromHbitmap(hbm);
+            byte[] raw = new byte[stride * h];
+            Marshal.Copy(ds.dsBm.bmBits, raw, 0, raw.Length);
+            bool bottomUp = got >= Marshal.SizeOf(typeof(DIBSECTION)) && ds.dsBmih.biHeight > 0;
+            bool anyAlpha = false;
+            for (int y = 0; y < h && !anyAlpha; y++)
+                for (int x = 0; x < w; x++)
+                    if (raw[y * stride + x * 4 + 3] != 0) { anyAlpha = true; break; }
+
+            Bitmap bmp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
+            BitmapData data = bmp.LockBits(new Rectangle(0, 0, w, h), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
             try
             {
-                byte[] raw = new byte[Math.Abs(data.Stride) * data.Height];
-                Marshal.Copy(data.Scan0, raw, 0, raw.Length);
-                bool anyAlpha = false;
-                for (int i = 3; i < raw.Length; i += 4) { if (raw[i] != 0) { anyAlpha = true; break; } }
-                if (!anyAlpha) return new Bitmap(src);
-                using (Bitmap view = new Bitmap(data.Width, data.Height, data.Stride, PixelFormat.Format32bppArgb, data.Scan0))
+                byte[] row = new byte[w * 4];
+                for (int y = 0; y < h; y++)
                 {
-                    return new Bitmap(view);
+                    Buffer.BlockCopy(raw, (bottomUp ? h - 1 - y : y) * stride, row, 0, row.Length);
+                    if (!anyAlpha) for (int i = 3; i < row.Length; i += 4) row[i] = 255;
+                    Marshal.Copy(row, 0, new IntPtr(data.Scan0.ToInt64() + (long)y * data.Stride), row.Length);
                 }
             }
-            finally
-            {
-                src.UnlockBits(data);
-                src.Dispose();
-            }
+            finally { bmp.UnlockBits(data); }
+            return bmp;
         }
 
         public static bool Recycle(string path)
