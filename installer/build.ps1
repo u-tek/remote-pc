@@ -49,7 +49,8 @@ try {
 Remove-Item (Join-Path $agent 'package-lock.json')
 
 Write-Host "==> Node.js $NodeMajor (latest release)"
-$release = Invoke-RestMethod 'https://nodejs.org/dist/index.json' | Where-Object { $_.version -like "v$NodeMajor.*" } | Select-Object -First 1
+# Parentheses make PowerShell enumerate the JSON array instead of passing it on as one object.
+$release = (Invoke-RestMethod 'https://nodejs.org/dist/index.json') | Where-Object { $_.version -like "v$NodeMajor.*" } | Select-Object -First 1
 $v = $release.version
 $zip = Join-Path $out "node-$v-win-x64.zip"
 Invoke-WebRequest -UseBasicParsing "https://nodejs.org/dist/$v/node-$v-win-x64.zip" -OutFile $zip
