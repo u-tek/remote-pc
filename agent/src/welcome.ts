@@ -127,31 +127,33 @@ export async function writeWelcome(): Promise<string> {
     <div>
       <h2><span class="num">2</span>Install the Remote PC app</h2>
       <div class="tabs" role="group">
-        <button data-show="side" aria-pressed="true">SideStore</button><button data-show="alt" aria-pressed="false">AltStore</button><button data-show="ipa" aria-pressed="false">Just the file</button>
+        <button data-show="side" aria-pressed="true">SideStore</button><button data-show="alt" aria-pressed="false">AltStore</button><button data-show="lc" aria-pressed="false">LiveContainer</button><button data-show="ipa" aria-pressed="false">Just the file</button>
       </div>
       <p data-for="side">Scan with the iPhone camera and tap <b>Open in SideStore</b>; it installs Remote PC straight from the latest build.</p>
       <p data-for="alt" hidden>Scan with the iPhone camera and tap <b>Open in AltStore</b>.</p>
+      <p data-for="lc" hidden>Uses no App ID, so it works when your Apple ID has run out. Scan to download <code>RemotePC.ipa</code> in Safari, then in LiveContainer tap <b>+</b> and pick it from Downloads. Open Remote PC from LiveContainer and pair by scanning inside the app (the Camera app can't open apps that live in LiveContainer).</p>
       <p data-for="ipa" hidden>Scan to download <code>RemotePC.ipa</code> in Safari, then open it in SideStore or AltStore (<b>+</b> → pick the file). <a href="${esc(IPA_URL)}">Download on this PC</a></p>
       <details>
         <summary>No SideStore on the iPhone yet?</summary>
         <ol class="small">
           <li>Plug the iPhone into this PC with a cable and tap <b>Trust</b> on the phone.</li>
-          <li>Open <b>iloader</b> from the Start menu, sign in with your Apple ID and choose <b>Install SideStore</b>.</li>
+          <li>Open <b>iloader</b> from the Start menu, sign in with your Apple ID and choose <b>LiveContainer + SideStore</b> (or just SideStore).</li>
           <li>On the iPhone: Settings → General → VPN &amp; Device Management → trust your Apple ID. Turn on Settings → Privacy &amp; Security → Developer Mode if asked.</li>
           <li>Open SideStore once, then scan the code above.</li>
         </ol>
-        <p class="muted">Free Apple IDs sign apps for 7 days; SideStore refreshes them on the phone.</p>
+        <p class="muted">Free Apple IDs sign apps for 7 days (SideStore refreshes them on the phone) and can create 10 App IDs a week. Remote PC needs one, and updates reuse it; apps inside LiveContainer need none.</p>
       </details>
     </div>
     <div class="qr" data-for="side">${sideQr}</div>
     <div class="qr" data-for="alt" hidden>${altQr}</div>
+    <div class="qr" data-for="lc" hidden>${ipaQr}</div>
     <div class="qr" data-for="ipa" hidden>${ipaQr}</div>
   </section>
 
   <section class="step">
     <div>
       <h2><span class="num">3</span>Pair with this PC</h2>
-      <p>Open Remote PC and tap <b>Pair with my PC</b>, or just scan with the iPhone camera.</p>
+      <p>Open Remote PC and tap <b>Pair with my PC</b>, or just scan with the iPhone camera (not for LiveContainer: scan inside the app).</p>
       <p class="warnline">This code is the key to your PC. Don't share it or post a screenshot of it.</p>
       ${tailscale ? '' : '<p class="muted">Tailscale isn\'t signed in on this PC, so the code points at your home network. Sign in to Tailscale and reopen this page to use the phone from anywhere.</p>'}
     </div>

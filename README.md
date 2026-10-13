@@ -95,10 +95,10 @@ in your browser with three QR codes: Tailscale for the iPhone, the Remote PC app
 The **Connect your iPhone** page walks through this. In short:
 
 1. **No SideStore yet?** Plug the iPhone into the PC, open **iloader** (the installer adds it) and
-   choose *Install SideStore*. Then on the iPhone: Settings → General → VPN & Device Management →
+   choose *LiveContainer + SideStore* (or just SideStore). Then on the iPhone: Settings → General → VPN & Device Management →
    trust your Apple ID, and turn on Developer Mode if asked.
 2. **Install Remote PC**: scan the page's QR code with the iPhone camera and open it in SideStore
-   (or AltStore). It installs the latest build straight from `main`.
+   (or AltStore, or download it for LiveContainer). It installs the latest build straight from `main`.
 3. **Pair**: open Remote PC → **Pair with my PC** → scan the pairing code (the iPhone Camera works too).
 
 The IPA is built by GitHub Actions on every push that touches `ios/`, and every build on `main` is
@@ -108,6 +108,15 @@ and the installer to a GitHub **Release**.
 
 Free Apple IDs sign apps for 7 days; SideStore refreshes them on the phone itself. (A paid Apple
 Developer account would remove the 7-day limit and allow real push notifications.)
+
+**Out of App IDs?** A free Apple ID can create 10 App IDs per rolling 7 days (and keep 3 sideloaded
+apps active). Remote PC needs one, and updates and refreshes reuse it. If you have none left:
+
+- **LiveContainer** (recommended): install the IPA inside [LiveContainer](https://github.com/LiveContainer/LiveContainer),
+  which runs apps without App IDs of their own. iloader can install *LiveContainer + SideStore*
+  together. Pair by scanning inside the app; the Camera app can't open apps inside LiveContainer.
+- Wait for one to expire: SideStore/AltStore → Settings → *App IDs* shows when each frees up.
+- Sign in to SideStore with a second (free) Apple ID, which has its own 10.
 
 ## Using it
 
