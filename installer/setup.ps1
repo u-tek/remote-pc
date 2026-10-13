@@ -32,6 +32,12 @@ param(
 # This file must stay plain ASCII: Windows PowerShell 5.1 reads scripts without a BOM as ANSI.
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+# Started from PowerShell 7, PSModulePath points Windows PowerShell (this script and the installers it
+# runs) at PowerShell 7's modules, and built-in commands such as Get-FileHash go missing.
+$env:PSModulePath = @((Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'WindowsPowerShell\Modules'),
+  (Join-Path $env:ProgramFiles 'WindowsPowerShell\Modules'), (Join-Path $PSHOME 'Modules')) -join ';'
+# Read what node, winget and the installers print as UTF-8.
+try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch {}
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch {}
 
 $App = $PSScriptRoot
@@ -239,16 +245,16 @@ if ($want.Claude) {
     if ($git) { Ok "Git: $git" } else { Warn 'Git for Windows did not install; Claude will use PowerShell instead of Bash.' }
 
     $claudeCandidates = @("$env:USERPROFILE\.local\bin\claude.exe", "$env:LOCALAPPDATA\Microsoft\WinGet\Links\claude.exe")
-    $claude = Find-Exe 'claude' $claudeCandidates
-    if (-not $claude) {
+    $claudeExe = Find-Exe 'claude' $claudeCandidates
+    if (-not $claudeExe) {
       Info 'Installing Claude Code...'
       Show-Native 'powershell.exe' @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', 'irm https://claude.ai/install.ps1 | iex')
       Update-Path
-      $claude = Find-Exe 'claude' $claudeCandidates
-      if (-not $claude -and (Install-Winget 'Anthropic.ClaudeCode')) { Update-Path; $claude = Find-Exe 'claude' $claudeCandidates }
+      $claudeExe = Find-Exe 'claude' $claudeCandidates
+      if (-not $claudeExe -and (Install-Winget 'Anthropic.ClaudeCode')) { Update-Path; $claudeExe = Find-Exe 'claude' $claudeCandidates }
     }
-    if (-not $claude) { throw 'Claude Code did not install. Get it from https://claude.com/claude-code and run Remote PC Setup again.' }
-    Ok "Installed: $claude"
+    if (-not $claudeExe) { throw 'Claude Code did not install. Get it from https://claude.com/claude-code and run Remote PC Setup again.' }
+    Ok "Installed: $claudeExe"
 
     $signedIn = {
       if ($env:ANTHROPIC_API_KEY) { return $true }
@@ -263,7 +269,7 @@ if ($want.Claude) {
       Warn 'Not signed in. Run "claude" in a terminal once to sign in.'
     } else {
       Info 'A Claude Code window is opening. Sign in there with your Claude account, then type /exit.'
-      Start-Process $claude -WorkingDirectory $env:USERPROFILE
+      Start-Process $claudeExe -WorkingDirectory $env:USERPROFILE
       if (Wait-Until $signedIn 'Waiting for you to sign in to Claude...') { Ok 'Signed in' }
       else { Warn 'Skipped. Run "claude" in a terminal to sign in later.' }
     }

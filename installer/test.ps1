@@ -47,6 +47,8 @@ if (-not $finished) {
   Get-Content (Join-Path $env:TEMP 'RemotePC-install.log') -ErrorAction SilentlyContinue | Select-Object -Last 40 | Write-Host
   throw 'The installer did not finish within 25 minutes'
 }
+# Pick up what the installers added to PATH since this shell started.
+$env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
 Check 'installer exit code' { if ($p.ExitCode -ne 0) { throw "exit code $($p.ExitCode)" }; $true }
 Check 'files' { (Test-Path "$app\node\node.exe") -and (Test-Path "$app\agent\dist\index.js") -and (Test-Path "$app\agent\node_modules\ws") }
 Check 'no bundled Claude binary' { -not (Test-Path "$app\agent\node_modules\@anthropic-ai\claude-agent-sdk-win32-x64") }
@@ -60,7 +62,12 @@ $base = "http://127.0.0.1:$($config.port)"
 $headers = @{ Authorization = "Bearer $($config.token)" }
 Check 'agent answers' { (Invoke-RestMethod "$base/health" -TimeoutSec 5).ok }
 if ($Components -match 'claude') {
-  Check 'Claude Code installed' { $c = "$env:USERPROFILE\.local\bin\claude.exe"; if (-not (Test-Path $c)) { $c = (Get-Command claude -ErrorAction Stop).Source }; (& $c --version) -join ' ' }
+  Check 'setup reported no problems' { -not (Select-String -Path $setupLog -Pattern 'Done, with problems' -Quiet) }
+  Check 'Claude Code installed' {
+    $c = @("$env:USERPROFILE\.local\bin\claude.exe", "$env:LOCALAPPDATA\Microsoft\WinGet\Links\claude.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $c) { $c = (Get-Command claude -ErrorAction Stop).Source }
+    "$c $((& $c --version) -join ' ')"
+  }
   Check 'agent can use Claude Code' {
     $info = Invoke-RestMethod "$base/api/info" -Headers $headers
     if (-not $info.agents.claude.available) { throw ($info.agents.claude.detail) }
