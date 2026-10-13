@@ -14,6 +14,7 @@ import {
 } from '@anthropic-ai/claude-agent-sdk';
 import type { Config } from '../config.js';
 import { HttpError } from '../http.js';
+import { claudeExecutable, claudeInstalled } from '../install.js';
 import type { Hub } from '../hub.js';
 import { log } from '../log.js';
 import { applyClaudeMessage } from './claude-items.js';
@@ -113,6 +114,9 @@ export class ClaudeProvider implements AgentProvider {
 
   async status() {
     if (!this.config.claude.enabled) return { available: false, detail: 'Disabled in config' };
+    if (this.sdk === realSdk && !claudeInstalled(this.config.claude.executable)) {
+      return { available: false, detail: 'Claude Code is not installed on the PC. Run the Remote PC installer again and pick Claude Code.' };
+    }
     return { available: true };
   }
 
@@ -241,7 +245,7 @@ export class ClaudeProvider implements AgentProvider {
         permissionMode: live.mode as PermissionMode,
         settingSources: ['user', 'project', 'local'],
         systemPrompt: { type: 'preset', preset: 'claude_code' },
-        pathToClaudeCodeExecutable: this.config.claude.executable || undefined,
+        pathToClaudeCodeExecutable: claudeExecutable(this.config.claude.executable),
         model: opts.model || this.config.claude.model || undefined,
         env,
         stderr: (data: string) => log.warn(`claude[${id.slice(0, 8)}]`, data.trim()),

@@ -42,6 +42,34 @@ iPhone app (SwiftUI)                                     agent (Node.js, runs on
 
 ## 1. Set up the PC
 
+Download **[RemotePC-Setup.exe](https://github.com/u-tek/remote-pc/raw/main/builds/RemotePC-Setup.exe)**
+and run it. No administrator account is needed; Windows asks once for the firewall rule. It sets up:
+
+| Part | What it does |
+| --- | --- |
+| Remote PC agent | Runs in the background with its own Node.js; starts when you sign in |
+| Tailscale | Lets the phone reach the PC from anywhere; opens the Tailscale sign-in |
+| Claude Code (+ Git for Windows) | Installed with Anthropic's official installer; opens the Claude sign-in |
+| OpenCode | Downloaded into the app folder; opens `opencode auth login` to pick a provider |
+| FFmpeg | Downloaded now so the live screen starts instantly |
+| iloader + iTunes | Put SideStore on the iPhone over USB (iTunes provides Apple's USB driver) |
+| Windows Firewall | Lets the phone in from Tailscale and your home network only |
+
+Every part except the agent can be unticked. A setup window shows progress and opens each sign-in
+when it's needed (press **S** there to skip one). At the end the **Connect your iPhone** page opens
+in your browser with three QR codes: Tailscale for the iPhone, the Remote PC app, and pairing.
+
+- **Start menu → Remote PC** starts the agent if it isn't running and reopens that page.
+- **Start menu → Remote PC Setup** repairs the install or signs you in again. Steps already done are skipped.
+- **Uninstall** from Settings → Apps. It asks whether to keep your settings and pairing. Tailscale,
+  Claude Code, Git, iTunes and iloader stay installed; they are separate apps.
+- Updating: run a newer `RemotePC-Setup.exe` over the old one. Every build on `main` is committed
+  to [`builds/`](builds), and each one was installed, used and uninstalled on a fresh Windows
+  machine by CI first.
+
+<details>
+<summary>Set up by hand instead</summary>
+
 1. **Tailscale**: install [Tailscale](https://tailscale.com/download) on the PC and on your iPhone and sign in with the same account. This is what lets the phone reach the PC from anywhere, without opening ports to the internet.
 2. **Node.js 20 or newer**: install the LTS version from [nodejs.org](https://nodejs.org).
 3. **Agents you want to use**:
@@ -57,21 +85,29 @@ iPhone app (SwiftUI)                                     agent (Node.js, runs on
    ```
 
    If Windows Firewall asks, allow Node.js on **private** networks.
-5. The agent prints a **QR code** (and saves it as `pairing.png` in `%APPDATA%\RemotePC`). Keep it handy for the phone.
+5. `node dist\index.js welcome` opens the **Connect your iPhone** page (`npm run pair` prints the pairing QR code in the terminal instead).
 6. **Start with Windows** (recommended): `node dist\index.js install-startup` starts the agent hidden when you sign in. Logs go to `%APPDATA%\RemotePC\agent.log`. The agent has to run in your own desktop session, not as a service, so it can see your windows and clipboard.
+
+</details>
 
 ## 2. Install the app on the iPhone
 
+The **Connect your iPhone** page walks through this. In short:
+
+1. **No SideStore yet?** Plug the iPhone into the PC, open **iloader** (the installer adds it) and
+   choose *Install SideStore*. Then on the iPhone: Settings → General → VPN & Device Management →
+   trust your Apple ID, and turn on Developer Mode if asked.
+2. **Install Remote PC**: scan the page's QR code with the iPhone camera and open it in SideStore
+   (or AltStore). It installs the latest build straight from `main`.
+3. **Pair**: open Remote PC → **Pair with my PC** → scan the pairing code (the iPhone Camera works too).
+
 The IPA is built by GitHub Actions on every push that touches `ios/`, and every build on `main` is
-committed as [`builds/RemotePC.ipa`](builds/RemotePC.ipa), so the latest app is always on `main`.
-Also:
+committed as [`builds/RemotePC.ipa`](builds/RemotePC.ipa). Builds from other branches are under
+**Actions** → **iOS app** → the **RemotePC-ipa** artifact, and a tag like `v0.1.0` attaches the IPA
+and the installer to a GitHub **Release**.
 
-- **Actions** tab → **iOS app** → any successful run (other branches too) → the **RemotePC-ipa** artifact (a zip containing `RemotePC.ipa`), or
-- push a tag like `v0.1.0` and the IPA is attached to a GitHub **Release**.
-
-Install it with [SideStore](https://sidestore.io) or [AltStore](https://altstore.io) using your free Apple ID. Free signing expires every 7 days; SideStore can refresh on the phone itself, AltStore refreshes from AltServer on your PC. (A paid Apple Developer account would remove the 7-day limit and allow real push notifications.)
-
-Then open **Remote PC** → **Pair with my PC** → scan the QR code. You can also scan the code with the iPhone Camera app, which opens the app and pairs automatically.
+Free Apple IDs sign apps for 7 days; SideStore refreshes them on the phone itself. (A paid Apple
+Developer account would remove the 7-day limit and allow real push notifications.)
 
 ## Using it
 
@@ -118,7 +154,7 @@ Then open **Remote PC** → **Pair with my PC** → scan the QR code. You can al
 | `token` | random | Pairing secret. `npm run pair -- --new-token` makes a new one and unpairs every phone |
 | `claude.defaultPermissionMode` | `"default"` | `default`, `acceptEdits` or `plan` |
 | `claude.idleCloseMinutes` | `120` | Close idle Claude processes (sessions can be resumed) |
-| `claude.executable` | – | Use a specific `claude.exe` instead of the SDK's bundled one |
+| `claude.executable` | – | Use a specific `claude.exe` (otherwise the SDK's bundled one, or the installed Claude Code) |
 | `opencode.enabled` | `true` | Start OpenCode's server |
 | `opencode.askPermissions` | `true` | Make OpenCode ask before edits / shell commands so approvals reach the phone |
 | `opencode.url` | – | Use an OpenCode server you already run |
@@ -130,7 +166,7 @@ Then open **Remote PC** → **Pair with my PC** → scan the QR code. You can al
 | `projects` | `[]` | Pinned project folders |
 | `web` | `[]` | Saved web apps (managed from the app) |
 
-Other commands: `npm run pair` (show the QR again), `node dist\index.js uninstall-startup`, `node dist\index.js config`.
+Other commands: `node dist\index.js welcome` (the Connect your iPhone page), `npm run pair` (the pairing QR in the terminal), `node dist\index.js ffmpeg`, `node dist\index.js uninstall-startup`, `node dist\index.js config`. In an installed copy, run them with `"%LOCALAPPDATA%\Programs\Remote PC\node\node.exe" "%LOCALAPPDATA%\Programs\Remote PC\agent\dist\index.js" <command>`.
 
 ## Security notes
 
@@ -168,6 +204,8 @@ ios/     SwiftUI app (iOS 17+)               brew install xcodegen && cd ios && 
   RemotePC/Models/PhoneUI.swift              protocol models
   RemotePC/Views/Apps/                       native renderer and home screen
 sdk/     Phone UI SDK                        PROTOCOL.md, node/, python/, csharp/, examples/
-.github/workflows/                           agent tests on Linux + Windows, unsigned IPA build on macOS
-builds/RemotePC.ipa                          latest IPA from main (committed by CI)
+installer/ Windows installer (Inno Setup)     build.ps1 builds it, test.ps1 installs/uninstalls it
+  setup.ps1                                  installs and signs in to everything; Start menu "Remote PC Setup"
+.github/workflows/                           agent tests on Linux + Windows, IPA build on macOS, installer build + test
+builds/                                      latest RemotePC.ipa and RemotePC-Setup.exe from main (committed by CI)
 ```

@@ -4,10 +4,13 @@ import http from 'node:http';
 import path from 'node:path';
 import { buildAgent, VERSION } from './app.js';
 import { ConfigStore, configDir, newToken } from './config.js';
+import { addInstalledTools } from './install.js';
 import { log, setLogFile } from './log.js';
 import { planBind } from './net.js';
 import { pairingUrl, showPairing } from './pairing.js';
+import { FfmpegManager } from './pc/ffmpeg.js';
 import { installStartup, uninstallStartup } from './startup.js';
+import { ensureAgentRunning, openFile, writeWelcome } from './welcome.js';
 
 const HELP = `Remote PC agent ${VERSION}
 
@@ -15,10 +18,16 @@ Usage: remote-pc-agent <command>
 
   start               Run the agent (default)
   pair [--new-token]  Show the pairing QR code (--new-token unpairs every phone)
+  welcome [--start] [--no-open]
+                      Open the page that connects your iPhone (Tailscale, app, pairing);
+                      --start starts the agent in the background first if it isn't running
   install-startup     Start the agent hidden whenever you sign in to Windows
   uninstall-startup   Stop starting the agent at sign-in
+  ffmpeg              Download FFmpeg for the live screen now instead of on first use
   config              Print where the config file lives
 `;
+
+addInstalledTools();
 
 async function start() {
   const store = new ConfigStore();
@@ -97,6 +106,19 @@ switch (cmd) {
   case 'uninstall-startup':
     console.log(uninstallStartup() ? 'Removed the startup entry.' : 'No startup entry was installed.');
     break;
+  case 'welcome': {
+    if (rest.includes('--start') && !(await ensureAgentRunning())) console.error(`The agent did not start. See ${path.join(configDir(), 'agent.log')}`);
+    const file = await writeWelcome();
+    console.log(file);
+    if (!rest.includes('--no-open')) openFile(file);
+    break;
+  }
+  case 'ffmpeg': {
+    const store = new ConfigStore();
+    const exe = await new FfmpegManager(configDir(), store.data.stream.ffmpeg).ensure((m) => console.log(m));
+    console.log(`FFmpeg: ${exe}`);
+    break;
+  }
   case 'config':
     console.log(new ConfigStore().file);
     break;

@@ -1,0 +1,80 @@
+name: Windows installer
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+    paths: ['agent/**', 'installer/**', 'sdk/**', '.github/workflows/installer.yml']
+  pull_request:
+    paths: ['agent/**', 'installer/**', 'sdk/**', '.github/workflows/installer.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: installer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test RemotePC-Setup.exe
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: agent/package-lock.json
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        run: .\installer\build.ps1 -Version "0.1.${{ github.run_number }}"
+
+      - name: Install, use and uninstall it (silently, on this fresh Windows machine)
+        run: .\installer\test.ps1
+
+      - name: Show logs
+        if: failure()
+        run: |
+          Get-Content "$env:TEMP\RemotePC-install.log" -ErrorAction SilentlyContinue | Select-Object -Last 80
+          Get-Content "$env:APPDATA\RemotePC\agent.log" -ErrorAction SilentlyContinue | Select-Object -Last 80
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemotePC-Setup
+          path: installer/out/RemotePC-Setup.exe
+          retention-days: 30
+
+      - name: Put the installer on main
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          mkdir -p builds
+          cp installer/out/RemotePC-Setup.exe builds/RemotePC-Setup.exe
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add builds/RemotePC-Setup.exe
+          git commit -q -m "Build RemotePC-Setup.exe from ${GITHUB_SHA::7}"
+          for i in 1 2 3; do
+            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+            sleep 5
+          done
+          exit 1
+
+      - name: Attach installer to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installer/out/RemotePC-Setup.exe

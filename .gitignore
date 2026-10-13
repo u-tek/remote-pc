@@ -6,6 +6,7 @@ ios/*.xcworkspace/
 dist/
 *.ipa
 !builds/RemotePC.ipa
+installer/out/
 .DS_Store
 xcuserdata/
 __pycache__/
