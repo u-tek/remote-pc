@@ -1,0 +1,9 @@
+node_modules/
+agent/dist/
+ios/build/
+ios/*.xcodeproj/
+ios/*.xcworkspace/
+dist/
+*.ipa
+.DS_Store
+xcuserdata/
