@@ -57,8 +57,8 @@ final class APIClient {
         return req
     }
 
-    func webSocketRequest() -> URLRequest {
-        var comps = URLComponents(url: url("/api/ws"), resolvingAgainstBaseURL: false)!
+    func webSocketRequest(_ path: String = "/api/ws", query: [String: String] = [:]) -> URLRequest {
+        var comps = URLComponents(url: url(path, query: query), resolvingAgainstBaseURL: false)!
         comps.scheme = "ws"
         var req = URLRequest(url: comps.url!)
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")

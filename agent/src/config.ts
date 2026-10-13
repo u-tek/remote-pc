@@ -37,6 +37,12 @@ export interface Config {
     /** Use an already running OpenCode server instead of starting one. */
     url?: string;
   };
+  stream: {
+    /** Default quality: high, balanced, low or saver. */
+    quality: string;
+    /** Path to ffmpeg.exe; otherwise PATH or a copy downloaded on first use. */
+    ffmpeg?: string;
+  };
   /** Pinned project folders offered when starting a new agent session. */
   projects: string[];
   web: WebBookmark[];
@@ -62,6 +68,7 @@ export function defaultConfig(): Config {
     token: newToken(),
     claude: { enabled: true, defaultPermissionMode: 'default', idleCloseMinutes: 120 },
     opencode: { enabled: true, port: 4096, askPermissions: true },
+    stream: { quality: 'balanced' },
     projects: [],
     web: [],
   };
@@ -90,6 +97,7 @@ export class ConfigStore {
       ...raw,
       claude: { ...defaults.claude, ...(raw.claude ?? {}) },
       opencode: { ...defaults.opencode, ...(raw.opencode ?? {}) },
+      stream: { ...defaults.stream, ...(raw.stream ?? {}) },
       projects: raw.projects ?? defaults.projects,
       web: raw.web ?? defaults.web,
     };

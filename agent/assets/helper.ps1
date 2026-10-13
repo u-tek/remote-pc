@@ -55,6 +55,18 @@ while ($true) {
       'clip_set_image' { [RemotePC.Json]::Ok($id, [RemotePC.Clip]::SetImage([string]$a.data)) }
       'recycle'        { [RemotePC.Json]::Ok($id, [RemotePC.Shell]::Recycle([string]$a.path)) }
       'folders'        { [RemotePC.Json]::Ok($id, [RemotePC.Shell]::KnownFolders()) }
+      'outputs'        { [RemotePC.Json]::Ok($id, [RemotePC.Display]::Outputs()) }
+      'shot'           { [RemotePC.Json]::OkString($id, [RemotePC.Display]::Shot([int]$a.x, [int]$a.y, [int]$a.w, [int]$a.h, [int]$a.width)) }
+      'input'          { [RemotePC.Json]::Ok($id, [RemotePC.Input]::Do([string]$a.k, [bool]$a.at, [int]$a.x, [int]$a.y, [string]$a.b, [int]$a.n, [string]$a.s, [int[]]$a.keys)) }
+      'winbounds'      { [RemotePC.Json]::Ok($id, [RemotePC.Win]::Bounds([long]$a.hwnd)) }
+      'winplace'       { [RemotePC.Json]::Ok($id, [RemotePC.Win]::Place([long]$a.hwnd, [int]$a.x, [int]$a.y, [int]$a.w, [int]$a.h)) }
+      'getplacement'   { [RemotePC.Json]::Ok($id, [RemotePC.Win]::GetPlacement([long]$a.hwnd)) }
+      'setplacement'   { [RemotePC.Json]::Ok($id, [RemotePC.Win]::SetPlacement([long]$a.hwnd, [int[]]$a.p)) }
+      'status'         { [RemotePC.Json]::Ok($id, [RemotePC.Machine]::Status()) }
+      'volume'         { [RemotePC.Json]::Ok($id, [RemotePC.Machine]::SetVolume([int]$a.level, [string]$a.mute)) }
+      'media'          { [RemotePC.Json]::Ok($id, [RemotePC.Machine]::Media([string]$a.action)) }
+      'power'          { [RemotePC.Json]::Ok($id, [RemotePC.Machine]::Power([string]$a.action)) }
+      'wallpaper'      { [RemotePC.Json]::OkString($id, [RemotePC.Machine]::WallpaperPath()) }
       default          { [RemotePC.Json]::Err($id, 'unknown op: ' + $req.op) }
     }
   } catch {

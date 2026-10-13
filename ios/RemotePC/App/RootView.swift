@@ -64,13 +64,13 @@ struct MainTabView: View {
     var body: some View {
         @Bindable var model = model
         TabView(selection: $model.selectedTab) {
+            PCView()
+                .tabItem { Label("PC", systemImage: "pc") }
+                .tag(AppTab.pc)
             SessionsView()
                 .tabItem { Label("Agents", systemImage: "sparkles") }
                 .badge(model.pendingCount)
                 .tag(AppTab.agents)
-            PCView()
-                .tabItem { Label("PC", systemImage: "pc") }
-                .tag(AppTab.pc)
             FilesView()
                 .tabItem { Label("Files", systemImage: "folder") }
                 .tag(AppTab.files)
@@ -80,6 +80,10 @@ struct MainTabView: View {
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(AppTab.settings)
+        }
+        .fullScreenCover(item: $model.streamTarget) { target in
+            RemoteDesktopView(target: target)
+                .environment(model)
         }
     }
 }

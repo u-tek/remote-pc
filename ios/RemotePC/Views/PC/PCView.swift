@@ -1,6 +1,7 @@
 import SwiftUI
 
 enum PCSection: String, CaseIterable, Identifiable {
+    case desktop = "Desktop"
     case start = "Start"
     case windows = "Windows"
     case tasks = "Tasks"
@@ -12,9 +13,9 @@ enum PCSection: String, CaseIterable, Identifiable {
 /// The "mobile Windows" shell: phone-native Start menu, window switcher, Task Manager and clipboard.
 struct PCView: View {
     @Environment(AppModel.self) private var model
-    @AppStorage("pcSection") private var sectionRaw = PCSection.start.rawValue
+    @AppStorage("pcSection") private var sectionRaw = PCSection.desktop.rawValue
 
-    private var section: PCSection { PCSection(rawValue: sectionRaw) ?? .start }
+    private var section: PCSection { PCSection(rawValue: sectionRaw) ?? .desktop }
 
     var body: some View {
         NavigationStack {
@@ -33,6 +34,7 @@ struct PCView: View {
                         WindowsOnlyView()
                     } else {
                         switch section {
+                        case .desktop: DesktopHomeView()
                         case .start: StartMenuView()
                         case .windows: WindowSwitcherView()
                         case .tasks: TaskManagerView()

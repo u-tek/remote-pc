@@ -75,6 +75,53 @@ await step('recycle bin delete', async () => {
   await helper.call('recycle', { path: file }, 60_000);
   assert.equal(existsSync(file), false);
 });
+let outputs = [];
+await step('monitors (DXGI order)', async () => {
+  outputs = await helper.call('outputs');
+  assert.ok(Array.isArray(outputs) && outputs.length > 0, 'no monitors');
+  return outputs.map((o) => `#${o.index} ${o.width}x${o.height}${o.dxgi ? '' : ' (no dxgi)'}`).join(', ');
+});
+await step(
+  'screen preview',
+  async () => {
+    const o = outputs[0];
+    const jpg = await helper.call('shot', { x: o.x, y: o.y, w: o.width, h: o.height, width: 320 });
+    assert.ok(jpg && Buffer.from(jpg, 'base64')[0] === 0xff, 'not a JPEG');
+  },
+  { optional: true },
+);
+await step('cursor position', async () => {
+  const pos = await helper.call('input', { k: 'cursor' });
+  assert.ok(Array.isArray(pos) && pos.length === 2);
+  return pos.join(',');
+});
+await step(
+  'relative mouse move',
+  async () => {
+    const before = await helper.call('input', { k: 'cursor' });
+    const after = await helper.call('input', { k: 'rel', x: 5, y: 5 });
+    return `${before.join(',')} -> ${after.join(',')}`;
+  },
+  { optional: true },
+);
+await step('system status', async () => {
+  const s = await helper.call('status');
+  assert.ok(typeof s.user === 'string' && s.uptimeSeconds > 0, 'bad status');
+  return `volume ${s.volume}, battery ${s.hasBattery ? s.battery + '%' : 'none'}`;
+});
+await step('wallpaper lookup', async () => {
+  const p = await helper.call('wallpaper');
+  return p ?? 'none set';
+});
+await step('window bounds', async () => {
+  const wins = await helper.call('windows');
+  if (!wins.length) return 'no windows to check';
+  const b = await helper.call('winbounds', { hwnd: wins[0].hwnd });
+  assert.ok(typeof b.width === 'number');
+  const placement = await helper.call('getplacement', { hwnd: wins[0].hwnd });
+  assert.equal(placement.length, 5);
+  return `${b.width}x${b.height}`;
+});
 await step('bad op reports an error', async () => {
   await assert.rejects(helper.call('nope'), /unknown op/);
 });

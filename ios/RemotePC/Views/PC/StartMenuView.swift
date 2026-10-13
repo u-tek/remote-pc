@@ -68,6 +68,11 @@ struct StartMenuView: View {
                     .buttonStyle(.plain)
                     .contextMenu {
                         Button {
+                            Task { await openOnPhone(app) }
+                        } label: {
+                            Label("Open on phone", systemImage: "iphone.gen3")
+                        }
+                        Button {
                             Task { await launch(app) }
                         } label: {
                             Label("Open on PC", systemImage: "arrow.up.forward.app")
@@ -108,6 +113,29 @@ struct StartMenuView: View {
             Haptics.error()
             model.flash(error.localizedDescription)
         }
+    }
+
+    /// Launch the app, wait for its window to appear, then show it fitted to the phone.
+    private func openOnPhone(_ app: AppEntry) async {
+        guard let client = model.client else { return }
+        let before = Set((try? await client.get("/api/windows", as: [WindowInfo].self))?.map(\.hwnd) ?? [])
+        await launch(app)
+        model.flash("Opening \(app.name)…")
+        let words = app.name.lowercased().split(separator: " ").map(String.init)
+        for _ in 0..<20 {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard let windows = try? await client.get("/api/windows", as: [WindowInfo].self) else { continue }
+            let fresh = windows.first { !before.contains($0.hwnd) }
+            let named = windows.first { w in
+                let title = w.title.lowercased()
+                return words.contains { $0.count > 2 && title.contains($0) } || w.process.lowercased() == words.first
+            }
+            if let w = fresh ?? (before.isEmpty ? nil : named) {
+                model.streamTarget = .window(hwnd: w.hwnd, title: w.title, fit: true)
+                return
+            }
+        }
+        model.flash("\(app.name) opened on the PC, but no window showed up")
     }
 
     private func setPinned(_ id: String, _ pin: Bool) {

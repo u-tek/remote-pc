@@ -2,6 +2,9 @@
 
 An iPhone app plus a small Windows companion ("the agent") that puts your PC in your pocket:
 
+- **Your actual desktop, live** — open the PC tab and you're looking at your real screen (with your wallpaper behind it). Tap *Take control* for a full-screen, low-latency stream you drive with your fingers: tap to click, hold to right-click, drag, two-finger scroll with momentum, pinch to zoom, or switch to **trackpad mode**. The iPhone keyboard types on the PC, with a key bar for Ctrl/Alt/Win, arrows, F-keys and shortcuts like Alt+Tab and Task Manager.
+- **Any PC app as a phone app** — tap the 📱 button on an open window (or *Open on phone* in Start) and that window is reshaped to your phone's proportions and streamed full screen, so a browser goes into its mobile layout and apps fill your screen. When you close it, the window goes back exactly where it was.
+- **Control Center for your PC** — volume, mute, play/pause/skip, lock, screen off, sleep, restart and shut down.
 - **Claude Code & OpenCode** — start sessions in any project folder, chat with them, attach photos, stop them, switch Claude's permission mode, and pick up sessions you started at your desk (Claude Code sessions from the terminal show up too).
 - **Approvals on your phone** — when an agent wants to edit files or run a command, you get a card with **Allow / Always / Deny** (or "deny and explain"). Claude's plan reviews and multiple-choice questions come through as well.
 - **"Mobile Windows"** — phone-native screens for your PC:
@@ -15,6 +18,8 @@ An iPhone app plus a small Windows companion ("the agent") that puts your PC in 
 
 ```
 iPhone app (SwiftUI)  ──HTTP + WebSocket over Tailscale──▶  agent (Node.js, runs on your PC)
+  hardware H.264 decode ◀── live video (FLV → H.264) ──────  ├─ FFmpeg: Desktop Duplication → NVENC/AMF/QSV/x264
+  touches, keys ─────────── input ─────────────────────────▶  ├─ SendInput (mouse, keyboard, scroll, text)
                                                               ├─ Claude Code (Agent SDK)
                                                               ├─ OpenCode (opencode serve)
                                                               ├─ PowerShell/C# helper → apps, windows, tasks, clipboard
@@ -55,6 +60,16 @@ Then open **Remote PC** → **Pair with my PC** → scan the QR code. You can al
 
 ## Using it
 
+### Live desktop
+
+- **PC tab → Desktop** shows a live preview of your screen; tap **Take control**. Turn the phone sideways for the full desktop.
+- The first time you open it, the agent downloads FFmpeg (~150 MB, once) into `%APPDATA%\RemotePC\ffmpeg`. It then picks the fastest encoder that works on your PC: NVIDIA NVENC, AMD AMF, Intel Quick Sync, Media Foundation, or x264 on the CPU. If you already have FFmpeg, set `stream.ffmpeg` in the config.
+- Quality adapts automatically when the connection struggles; you can also pick it in the ⋯ menu (Sharp 1080p60 → Cellular saver). On the same Wi-Fi or a direct Tailscale connection it feels close to sitting at the PC.
+- **App mode**: the 📱 button on a window (PC → Windows, or the *Open on your phone* list on the Desktop page) streams just that window, resized to phone shape. Long-press a Start menu app → *Open on phone* to launch it straight into app mode.
+- Limits: Windows doesn't let normal apps see or control the **lock screen** or admin (UAC) prompts. Keep the PC unlocked while you want to use it remotely (Control Center's *Screen off* turns the monitor off without locking). Apps running as administrator also ignore input from non-admin programs.
+
+### Agents
+
 - **Agents tab**: `+` starts a session (pick Claude Code or OpenCode, a project folder, and the first message). Pinned and recent folders are suggested; *Browse folders on the PC* lets you pick any folder.
 - Pending approvals show at the bottom of the chat, in the **Waiting for you** inbox, and as an in-app banner (with sound and haptics) wherever you are in the app.
 - Claude's permission modes (⋯ menu in a chat): *Ask before changes* (default), *Auto-accept edits*, *Plan first*.
@@ -76,6 +91,8 @@ Then open **Remote PC** → **Pair with my PC** → scan the QR code. You can al
 | `opencode.enabled` | `true` | Start OpenCode's server |
 | `opencode.askPermissions` | `true` | Make OpenCode ask before edits / shell commands so approvals reach the phone |
 | `opencode.url` | – | Use an OpenCode server you already run |
+| `stream.quality` | `"balanced"` | Default live-desktop quality: `high`, `balanced`, `low`, `saver` |
+| `stream.ffmpeg` | – | Path to your own `ffmpeg.exe` (otherwise PATH or a copy downloaded on first use) |
 | `projects` | `[]` | Pinned project folders |
 | `web` | `[]` | Saved web apps (managed from the app) |
 
@@ -86,6 +103,7 @@ Other commands: `npm run pair` (show the QR again), `node dist\index.js uninstal
 - Every request needs the pairing token. After 10 failed attempts an address is blocked for 5 minutes.
 - By default the agent only listens on its Tailscale address (plus `localhost`), so only devices on your tailnet can reach it. Traffic is encrypted by Tailscale (WireGuard).
 - The paired phone can do anything your Windows account can: read and write files, run agents, end processes. Treat the token like a password; rotate it with `npm run pair -- --new-token` if the phone is lost.
+- The live desktop uses the same token-protected connection; nothing streams unless the app is open on your phone.
 - Saved web apps are forwarded to your tailnet **without** the token, because the browser connects to them directly. Only save apps you are happy for your own devices to reach.
 
 ## More feature ideas (not built yet)
@@ -93,8 +111,9 @@ Other commands: `npm run pair` (show the QR again), `node dist\index.js uninstal
 - Live Activity / Dynamic Island progress and real push notifications (needs a paid Apple Developer account).
 - Siri Shortcuts ("Hey Siri, tell Claude to run the tests") and home-screen widgets.
 - Share-sheet extension: "Send to PC" from any app.
-- Power and media: Wake-on-LAN, sleep / restart / lock, volume and play/pause.
-- Live screen streaming for when the native screens aren't enough.
+- Wake-on-LAN, so a sleeping PC can be woken from the phone.
+- PC audio streamed to the phone, and a phone-shaped virtual monitor (needs a virtual display driver).
+- Controlling the lock screen and admin prompts (needs the agent to run as a Windows service).
 - A PowerShell/WSL terminal, a Git panel with diffs, and commit/push.
 - More agents through the same chat: Codex CLI, Gemini CLI, Aider, and local models via Ollama.
 

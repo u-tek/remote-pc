@@ -48,44 +48,64 @@ struct WindowSwitcherView: View {
     }
 
     private func card(_ window: WindowInfo) -> some View {
-        Button {
-            Task { await act(window, "focus") }
-        } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color(.secondarySystemBackground))
-                    if window.minimized {
-                        VStack(spacing: 4) {
-                            Image(systemName: "arrow.down.right.and.arrow.up.left").font(.title3)
-                            Text("Minimized").font(.caption2)
-                        }
-                        .foregroundStyle(.secondary)
-                    } else {
-                        AuthImage(path: "/api/windows/\(window.hwnd)/thumbnail", query: ["width": "480", "t": String(thumbStamp)], contentMode: .fit, cache: false) {
-                            Image(systemName: "macwindow").font(.largeTitle).foregroundStyle(.tertiary)
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .padding(4)
+        VStack(alignment: .leading, spacing: 6) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color(.secondarySystemBackground))
+                if window.minimized {
+                    VStack(spacing: 4) {
+                        Image(systemName: "arrow.down.right.and.arrow.up.left").font(.title3)
+                        Text("Minimized").font(.caption2)
                     }
-                }
-                .frame(height: 110)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(window.foreground ? Color.accentColor : Color.clear, lineWidth: 2)
-                )
-                Text(window.title)
-                    .font(.caption.weight(.medium))
-                    .lineLimit(2)
-                    .foregroundStyle(.primary)
-                Text(window.process)
-                    .font(.caption2)
                     .foregroundStyle(.secondary)
+                } else {
+                    AuthImage(path: "/api/windows/\(window.hwnd)/thumbnail", query: ["width": "480", "t": String(thumbStamp)], contentMode: .fit, cache: false) {
+                        Image(systemName: "macwindow").font(.largeTitle).foregroundStyle(.tertiary)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .padding(4)
+                }
             }
-            .contentShape(Rectangle())
+            .frame(height: 110)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(window.foreground ? Color.accentColor : Color.clear, lineWidth: 2)
+            )
+            .overlay(alignment: .topTrailing) {
+                Button {
+                    model.streamTarget = .window(hwnd: window.hwnd, title: window.title, fit: true)
+                } label: {
+                    Image(systemName: "iphone.gen3")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Color.accentColor, in: Circle())
+                        .shadow(radius: 3)
+                }
+                .padding(6)
+                .accessibilityLabel("Open on phone")
+            }
+            Text(window.title)
+                .font(.caption.weight(.medium))
+                .lineLimit(2)
+                .foregroundStyle(.primary)
+            Text(window.process)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
-        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .onTapGesture { Task { await act(window, "focus") } }
         .contextMenu {
+            Button {
+                model.streamTarget = .window(hwnd: window.hwnd, title: window.title, fit: true)
+            } label: {
+                Label("Open on phone", systemImage: "iphone.gen3")
+            }
+            Button {
+                model.streamTarget = .window(hwnd: window.hwnd, title: window.title, fit: false)
+            } label: {
+                Label("View live (keep size)", systemImage: "eye")
+            }
             Button { Task { await act(window, "focus") } } label: { Label("Bring to front", systemImage: "macwindow") }
             if window.minimized || window.maximized {
                 Button { Task { await act(window, "restore") } } label: { Label("Restore", systemImage: "arrow.up.left.and.arrow.down.right") }

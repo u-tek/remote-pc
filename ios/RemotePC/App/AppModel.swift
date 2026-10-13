@@ -82,7 +82,9 @@ final class AppModel {
 
     var banner: Banner?
     var toast: String?
-    var selectedTab: AppTab = .agents
+    var selectedTab: AppTab = .pc
+    /// Live desktop / app currently shown full screen.
+    var streamTarget: StreamTarget?
     /// Session currently on screen; no banner is shown for it.
     var openSessionKey: String?
     /// Set to open a session from a banner or notification.

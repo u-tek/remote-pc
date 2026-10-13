@@ -12,6 +12,8 @@ export interface AppOptions {
   router: Router;
   /** Extra data sent to each WebSocket client when it connects. */
   hello: () => Promise<Record<string, unknown>>;
+  /** Other authenticated WebSocket endpoints, keyed by path (e.g. the screen stream). */
+  sockets?: Record<string, (ws: WebSocket, url: URL) => void>;
 }
 
 function tokenFrom(req: IncomingMessage): string | undefined {
@@ -79,12 +81,18 @@ export function createApp(opts: AppOptions) {
 
   function upgrade(req: IncomingMessage, socket: Duplex, head: Buffer) {
     const url = new URL(req.url ?? '/', 'http://localhost');
-    if (url.pathname !== '/api/ws' || authorized(req) !== 'ok') {
+    const extra = opts.sockets?.[url.pathname];
+    if ((url.pathname !== '/api/ws' && !extra) || authorized(req) !== 'ok') {
       socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
       socket.destroy();
       return;
     }
-    wss.handleUpgrade(req, socket, head, (ws) => void onConnection(ws));
+    // Low latency matters more than packet efficiency for input and video.
+    if ('setNoDelay' in socket && typeof socket.setNoDelay === 'function') socket.setNoDelay(true);
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      if (extra) extra(ws, url);
+      else void onConnection(ws);
+    });
   }
 
   async function onConnection(ws: WebSocket) {
