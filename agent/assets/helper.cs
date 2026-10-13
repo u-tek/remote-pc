@@ -542,11 +542,62 @@ namespace RemotePC
         /// PNG icon (base64) for a Start menu app id, or null.
         public static string AppIcon(string appId, int size)
         {
+            return ParsingNameIcon("shell:AppsFolder\\" + appId, size);
+        }
+
+        [DllImport("kernel32.dll")] static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);
+        [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern int GetApplicationUserModelId(IntPtr process, ref uint length, StringBuilder id);
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern bool QueryFullProcessImageName(IntPtr process, uint flags, StringBuilder name, ref uint size);
+        [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+        delegate bool ChildProc(IntPtr h, IntPtr l);
+        [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr parent, ChildProc cb, IntPtr l);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr h, StringBuilder sb, int max);
+
+        /// The icon of the app that owns a window: Store apps by their app id, desktop apps by their exe.
+        public static string WindowIcon(long hwnd, int size)
+        {
+            IntPtr h = new IntPtr(hwnd);
+            uint pid;
+            GetWindowThreadProcessId(h, out pid);
+            uint framePid = pid;
+            // UWP windows are hosted by ApplicationFrameHost; the app itself owns the CoreWindow child.
+            EnumChildWindows(h, delegate (IntPtr c, IntPtr l)
+            {
+                StringBuilder cls = new StringBuilder(64);
+                GetClassName(c, cls, 64);
+                if (cls.ToString() != "Windows.UI.Core.CoreWindow") return true;
+                uint p;
+                GetWindowThreadProcessId(c, out p);
+                if (p != framePid) { pid = p; return false; }
+                return true;
+            }, IntPtr.Zero);
+            IntPtr proc = OpenProcess(0x1000, false, pid);
+            if (proc == IntPtr.Zero) return null;
+            try
+            {
+                uint len = 512;
+                StringBuilder aumid = new StringBuilder((int)len);
+                if (GetApplicationUserModelId(proc, ref len, aumid) == 0 && aumid.Length > 0)
+                {
+                    string icon = ParsingNameIcon("shell:AppsFolder\\" + aumid.ToString(), size);
+                    if (icon != null) return icon;
+                }
+                uint plen = 1024;
+                StringBuilder path = new StringBuilder((int)plen);
+                if (QueryFullProcessImageName(proc, 0, path, ref plen)) return ParsingNameIcon(path.ToString(), size);
+                return null;
+            }
+            finally { CloseHandle(proc); }
+        }
+
+        static string ParsingNameIcon(string parsingName, int size)
+        {
             if (size <= 0) size = 96;
             IShellItemImageFactory factory;
             try
             {
-                SHCreateItemFromParsingName("shell:AppsFolder\\" + appId, IntPtr.Zero,
+                SHCreateItemFromParsingName(parsingName, IntPtr.Zero,
                     typeof(IShellItemImageFactory).GUID, out factory);
             }
             catch { return null; }

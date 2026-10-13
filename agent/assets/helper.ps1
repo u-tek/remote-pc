@@ -49,6 +49,7 @@ while ($true) {
       'thumb'          { [RemotePC.Json]::OkString($id, [RemotePC.Win]::Thumbnail([long]$a.hwnd, [int]$a.width)) }
       'processes'      { [RemotePC.Json]::Ok($id, [RemotePC.Sys]::Processes()) }
       'apps'           { $apps = Get-Apps; [RemotePC.Json]::Ok($id, $apps) }
+      'winicon'        { [RemotePC.Json]::OkString($id, [RemotePC.Shell]::WindowIcon([long]$a.hwnd, [int]$a.size)) }
       'appicon'        { [RemotePC.Json]::OkString($id, [RemotePC.Shell]::AppIcon([string]$a.id, [int]$a.size)) }
       'clip_get'       { [RemotePC.Json]::Ok($id, [RemotePC.Clip]::Get()) }
       'clip_set'       { [RemotePC.Json]::Ok($id, [RemotePC.Clip]::SetText([string]$a.text)) }

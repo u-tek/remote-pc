@@ -10,12 +10,16 @@ import { Hub } from './hub.js';
 import type { BindPlan } from './net.js';
 import { FfmpegManager } from './pc/ffmpeg.js';
 import { registerFileRoutes } from './pc/files.js';
-import { WindowsHelper } from './pc/helper.js';
+import { uiHelperCommand, WindowsHelper } from './pc/helper.js';
 import { registerShellRoutes } from './pc/shell.js';
 import { StreamSession } from './pc/stream.js';
 import { registerSystemRoutes } from './pc/system.js';
 import { registerWebRoutes, WebForwarder } from './pc/web.js';
 import { createApp } from './server.js';
+import { defaultAdapters } from './ui/adapters/index.js';
+import { HelperBackend, type UiBackend } from './ui/backend.js';
+import { UiService } from './ui/routes.js';
+import { SdkHub } from './ui/sdk.js';
 
 export const VERSION: string = (() => {
   try {
@@ -32,6 +36,9 @@ export interface AgentOptions {
   providers?: Partial<Record<AgentKind, AgentProvider>>;
   claudeSdk?: ClaudeSdk;
   inputHelper?: WindowsHelper;
+  uiHelper?: WindowsHelper;
+  /** Tests: a fake Windows for the app sessions. */
+  uiBackend?: UiBackend;
   /** Tests: stream a synthetic pattern instead of the real screen. */
   testStream?: boolean;
 }
@@ -42,6 +49,16 @@ export function buildAgent(opts: AgentOptions) {
   const hub = new Hub();
   const helper = opts.helper ?? new WindowsHelper();
   const inputHelper = opts.inputHelper ?? new WindowsHelper();
+  const uiHelper = opts.uiHelper ?? new WindowsHelper(uiHelperCommand());
+  const sdk = new SdkHub();
+  const ui = new UiService({
+    backend: opts.uiBackend ?? new HelperBackend(uiHelper, helper),
+    adapters: defaultAdapters(),
+    sdk,
+    pollMs: () => store.data.ui.pollMs,
+    screenReaderFlag: () => store.data.ui.screenReaderFlag,
+    enabled: process.platform === 'win32' || Boolean(opts.uiBackend),
+  });
   const ffmpeg = new FfmpegManager(configDir(), store.data.stream.ffmpeg);
   const claude = new ClaudeProvider(store.data, hub, opts.claudeSdk);
   const opencode = new OpenCodeProvider(store.data, hub);
@@ -58,6 +75,8 @@ export function buildAgent(opts: AgentOptions) {
       platform: process.platform,
       hostname: os.hostname(),
       windows: process.platform === 'win32',
+      /** Phone UI protocol version for native apps. */
+      ui: 1,
       stream: process.platform === 'win32' || Boolean(opts.testStream),
       host: plan.advertise,
       agents,
@@ -70,6 +89,7 @@ export function buildAgent(opts: AgentOptions) {
   registerShellRoutes(router, helper);
   registerWebRoutes(router, web);
   registerSystemRoutes(router, helper, inputHelper, ffmpeg);
+  ui.register(router);
 
   const app = createApp({
     token: () => store.data.token,
@@ -91,23 +111,33 @@ export function buildAgent(opts: AgentOptions) {
           testSource: opts.testStream,
         }).start();
       },
+      '/api/ui': (ws, url) => ui.attach(ws, url),
+    },
+    localSockets: {
+      '/api/sdk': { token: () => store.data.ui.sdkToken, handler: (ws) => sdk.attach(ws) },
     },
   });
 
   return {
     app,
     hub,
+    store,
     helper,
     providers,
     web,
+    ui,
+    sdk,
     async warmUp() {
       helper.warmUp();
       inputHelper.warmUp();
+      uiHelper.warmUp();
       opencode.warmUp();
       await web.startAll();
     },
     async shutdown() {
       web.stopAll();
+      ui.shutdown();
+      uiHelper.stop();
       helper.stop();
       inputHelper.stop();
       app.close();

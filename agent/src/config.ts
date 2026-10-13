@@ -43,6 +43,14 @@ export interface Config {
     /** Path to ffmpeg.exe; otherwise PATH or a copy downloaded on first use. */
     ffmpeg?: string;
   };
+  ui: {
+    /** Tell apps a screen reader is running while the phone shows them, so Chrome/Electron apps expose their full UI. */
+    screenReaderFlag: boolean;
+    /** How often an open app is re-read when nothing is happening (ms). */
+    pollMs: number;
+    /** Token apps on this PC use to publish their own phone UI through the SDK (127.0.0.1 only). */
+    sdkToken: string;
+  };
   /** Pinned project folders offered when starting a new agent session. */
   projects: string[];
   web: WebBookmark[];
@@ -69,6 +77,7 @@ export function defaultConfig(): Config {
     claude: { enabled: true, defaultPermissionMode: 'default', idleCloseMinutes: 120 },
     opencode: { enabled: true, port: 4096, askPermissions: true },
     stream: { quality: 'balanced' },
+    ui: { screenReaderFlag: true, pollMs: 1000, sdkToken: newToken() },
     projects: [],
     web: [],
   };
@@ -98,10 +107,12 @@ export class ConfigStore {
       claude: { ...defaults.claude, ...(raw.claude ?? {}) },
       opencode: { ...defaults.opencode, ...(raw.opencode ?? {}) },
       stream: { ...defaults.stream, ...(raw.stream ?? {}) },
+      ui: { ...defaults.ui, ...(raw.ui ?? {}) },
       projects: raw.projects ?? defaults.projects,
       web: raw.web ?? defaults.web,
     };
     if (!merged.token || merged.token.length < 20) merged.token = newToken();
+    if (!merged.ui.sdkToken || merged.ui.sdkToken.length < 20) merged.ui.sdkToken = newToken();
     this.data = merged;
     this.save();
     return merged;

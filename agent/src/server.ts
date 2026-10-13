@@ -14,7 +14,11 @@ export interface AppOptions {
   hello: () => Promise<Record<string, unknown>>;
   /** Other authenticated WebSocket endpoints, keyed by path (e.g. the screen stream). */
   sockets?: Record<string, (ws: WebSocket, url: URL) => void>;
+  /** WebSocket endpoints for programs on this PC only (loopback address + their own token), e.g. the SDK. */
+  localSockets?: Record<string, { token: () => string; handler: (ws: WebSocket, url: URL) => void }>;
 }
+
+const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 
 function tokenFrom(req: IncomingMessage): string | undefined {
   const header = req.headers.authorization;
@@ -81,6 +85,17 @@ export function createApp(opts: AppOptions) {
 
   function upgrade(req: IncomingMessage, socket: Duplex, head: Buffer) {
     const url = new URL(req.url ?? '/', 'http://localhost');
+    const local = opts.localSockets?.[url.pathname];
+    if (local) {
+      const token = tokenFrom(req);
+      if (!LOOPBACK.has(req.socket.remoteAddress ?? '') || !token || !safeEqual(token, local.token())) {
+        socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
+        socket.destroy();
+        return;
+      }
+      wss.handleUpgrade(req, socket, head, (ws) => local.handler(ws, url));
+      return;
+    }
     const extra = opts.sockets?.[url.pathname];
     if ((url.pathname !== '/api/ws' && !extra) || authorized(req) !== 'ok') {
       socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');

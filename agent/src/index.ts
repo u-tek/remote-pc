@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { writeFileSync } from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { buildAgent, VERSION } from './app.js';
@@ -50,6 +51,11 @@ async function start() {
 
   log.info(`Remote PC agent ${VERSION} listening on ${plan.listen.map((h) => `${h}:${store.data.port}`).join(', ')}`);
   log.info(`Config: ${store.file}`);
+  // Lets SDK apps on this PC find the agent without configuration.
+  writeFileSync(
+    path.join(configDir(), 'sdk.json'),
+    JSON.stringify({ url: `ws://127.0.0.1:${store.data.port}/api/sdk`, token: store.data.ui.sdkToken, protocol: 1 }, null, 2),
+  );
   await agent.warmUp();
   if (process.stdout.isTTY) await showPairing(pairingUrl(store.data, plan.advertise), configDir());
 

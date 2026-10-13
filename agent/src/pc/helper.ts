@@ -20,6 +20,14 @@ export function defaultHelperCommand(): HelperCommand {
   };
 }
 
+/** The UI Automation helper (assets/ui.ps1): its own process so slow apps never block anything else. */
+export function uiHelperCommand(): HelperCommand {
+  return {
+    command: 'powershell.exe',
+    args: ['-NoLogo', '-NoProfile', '-NonInteractive', '-Sta', '-ExecutionPolicy', 'Bypass', '-File', path.join(ASSETS, 'ui.ps1')],
+  };
+}
+
 interface Pending {
   resolve: (v: unknown) => void;
   reject: (e: Error) => void;
