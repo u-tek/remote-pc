@@ -4,7 +4,7 @@ import UIKit
 /// The quiet fallback for things that can't be rebuilt natively (video, canvases, games): a live
 /// picture of just that part of the window that you can tap, scroll and type into.
 struct LiveItemView: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
     @Environment(AppModel.self) private var model
 
@@ -19,7 +19,7 @@ struct LiveItemView: View {
 
 /// A part of a window refreshed several times a second, with touches sent to that spot.
 struct LiveRegion: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
     @Environment(AppModel.self) private var model
     @State private var image: UIImage?

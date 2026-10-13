@@ -3,83 +3,83 @@ import Foundation
 // Swift mirror of the Phone UI protocol v1 (agent/src/ui/schema.ts). Every field the phone does
 // not strictly need is optional, so newer agents and SDK apps never break older phones.
 
-struct UIAppView: Decodable, Equatable {
+struct PhoneAppView: Decodable, Equatable {
     var v: Int?
-    var app: UIAppInfo
-    var screens: [UIScreen]
-    var sheet: UIScreen?
-    var alert: UIAlert?
+    var app: PhoneAppInfo
+    var screens: [PhoneScreen]
+    var sheet: PhoneScreen?
+    var alert: PhoneAlert?
     var toast: String?
 }
 
-struct UIAppInfo: Decodable, Equatable {
+struct PhoneAppInfo: Decodable, Equatable {
     var id: String
     var name: String
-    var icon: UIIcon?
+    var icon: PhoneIcon?
     var tint: String?
     var source: String?
     var adapter: String?
 }
 
-struct UIScreen: Decodable, Equatable, Identifiable, Hashable {
+struct PhoneScreen: Decodable, Equatable, Identifiable, Hashable {
     var id: String
     var title: String
     var subtitle: String?
     var style: String?
     var largeTitle: Bool?
-    var search: UISearchField?
-    var segments: UISegments?
-    var actions: [UIAction]?
-    var menu: [UIMenuItem]?
-    var bottomBar: [UIAction]?
-    var sections: [UISection]
-    var composer: UIComposer?
-    var more: UIAction?
-    var back: UIAction?
-    var address: UIAddress?
-    var document: UIDocumentBody?
-    var empty: UIEmpty?
-    var refresh: UIAction?
+    var search: PhoneSearchField?
+    var segments: PhoneSegments?
+    var actions: [PhoneAction]?
+    var menu: [PhoneMenuItem]?
+    var bottomBar: [PhoneAction]?
+    var sections: [PhoneSection]
+    var composer: PhoneComposer?
+    var more: PhoneAction?
+    var back: PhoneAction?
+    var address: PhoneAddress?
+    var document: PhoneDocumentBody?
+    var empty: PhoneEmpty?
+    var refresh: PhoneAction?
 
-    static func == (a: UIScreen, b: UIScreen) -> Bool { a.id == b.id && a.sections == b.sections && a.title == b.title && a.document == b.document && a.address == b.address && a.menu == b.menu && a.actions == b.actions && a.bottomBar == b.bottomBar && a.segments == b.segments && a.search == b.search && a.composer == b.composer && a.empty == b.empty }
+    static func == (a: PhoneScreen, b: PhoneScreen) -> Bool { a.id == b.id && a.sections == b.sections && a.title == b.title && a.document == b.document && a.address == b.address && a.menu == b.menu && a.actions == b.actions && a.bottomBar == b.bottomBar && a.segments == b.segments && a.search == b.search && a.composer == b.composer && a.empty == b.empty }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 
-struct UIEmpty: Decodable, Equatable {
+struct PhoneEmpty: Decodable, Equatable {
     var title: String
     var message: String?
     var symbol: String?
 }
 
-struct UISection: Decodable, Equatable, Identifiable {
+struct PhoneSection: Decodable, Equatable, Identifiable {
     var id: String
     var header: String?
     var footer: String?
     var style: String?
-    var items: [UIItem]
+    var items: [PhoneItem]
 }
 
-struct UIChoice: Decodable, Equatable, Identifiable, Hashable {
+struct PhoneChoice: Decodable, Equatable, Identifiable, Hashable {
     var id: String
     var title: String
     var symbol: String?
     var ref: String?
 }
 
-struct UIRun: Decodable, Equatable {
+struct PhoneRun: Decodable, Equatable {
     var text: String
-    var link: UIAction?
+    var link: PhoneAction?
     var bold: Bool?
     var italic: Bool?
     var code: Bool?
 }
 
-struct UIRecordField: Decodable, Equatable {
+struct PhoneRecordField: Decodable, Equatable {
     var label: String
     var value: String
 }
 
-struct UIKey: Decodable, Equatable {
+struct PhoneKey: Decodable, Equatable {
     var ref: String
     var title: String?
     var symbol: String?
@@ -88,27 +88,27 @@ struct UIKey: Decodable, Equatable {
     var tone: String?
 }
 
-struct UIStream: Decodable, Equatable {
+struct PhoneStream: Decodable, Equatable {
     var hwnd: Int64
 }
 
 /// One row/control. `kind` says which fields matter (see schema.ts); unknown kinds are skipped.
-struct UIItem: Decodable, Equatable, Identifiable {
+struct PhoneItem: Decodable, Equatable, Identifiable {
     var id: String
     var kind: String
     var title: String?
     var subtitle: String?
-    var value: UIValue?
-    var icon: UIIcon?
+    var value: PhoneValue?
+    var icon: PhoneIcon?
     var badge: String?
     /// A flag on rows ("this one is selected"), an option id on choices.
-    var selected: UISelected?
-    var tap: UIAction?
+    var selected: PhoneSelected?
+    var tap: PhoneAction?
     var on: Bool?
     var ref: String?
     var disabled: Bool?
-    var options: [UIChoice]?
-    var load: UIAction?
+    var options: [PhoneChoice]?
+    var load: PhoneAction?
     var style: String?
     var min: Double?
     var max: Double?
@@ -118,14 +118,14 @@ struct UIItem: Decodable, Equatable, Identifiable {
     var multiline: Bool?
     var readOnly: Bool?
     var keyboard: String?
-    var submit: UIAction?
-    var action: UIAction?
+    var submit: PhoneAction?
+    var action: PhoneAction?
     var radio: Bool?
     var text: String?
     var label: String?
     var copyable: Bool?
     var level: Int?
-    var runs: [UIRun]?
+    var runs: [PhoneRun]?
     var bullet: String?
     var quote: Bool?
     var image: String?
@@ -136,30 +136,30 @@ struct UIItem: Decodable, Equatable, Identifiable {
     var unread: Bool?
     var checked: Bool?
     var chevron: Bool?
-    var menu: [UIMenuItem]?
-    var swipe: [UIAction]?
-    var leadingSwipe: [UIAction]?
+    var menu: [PhoneMenuItem]?
+    var swipe: [PhoneAction]?
+    var leadingSwipe: [PhoneAction]?
     var expanded: Bool?
-    var expand: UIAction?
+    var expand: PhoneAction?
     var author: String?
     var time: String?
-    var avatar: UIIcon?
+    var avatar: PhoneIcon?
     var outgoing: Bool?
     var images: [String]?
     var reactions: [String]?
     var replyTo: String?
     var system: Bool?
-    var fields: [UIRecordField]?
-    var rows: [[UIKey?]]?
-    var actions: [UIAction]?
+    var fields: [PhoneRecordField]?
+    var rows: [[PhoneKey?]]?
+    var actions: [PhoneAction]?
     var region: String?
-    var stream: UIStream?
+    var stream: PhoneStream?
 
     var stringValue: String? { value?.string }
     var numberValue: Double? { value?.number }
 }
 
-enum UISelected: Decodable, Equatable {
+enum PhoneSelected: Decodable, Equatable {
     case flag(Bool)
     case option(String)
 
@@ -180,7 +180,7 @@ enum UISelected: Decodable, Equatable {
 }
 
 /// `value` is text for most items and a number for sliders and steppers.
-enum UIValue: Decodable, Equatable {
+enum PhoneValue: Decodable, Equatable {
     case string(String)
     case number(Double)
 
@@ -204,7 +204,7 @@ enum UIValue: Decodable, Equatable {
     }
 }
 
-struct UIIcon: Decodable, Equatable, Hashable {
+struct PhoneIcon: Decodable, Equatable, Hashable {
     var symbol: String?
     var image: String?
     var text: String?
@@ -212,18 +212,18 @@ struct UIIcon: Decodable, Equatable, Hashable {
     var style: String?
 }
 
-struct UIAction: Decodable, Equatable, Hashable {
+struct PhoneAction: Decodable, Equatable, Hashable {
     var ref: String
     var title: String?
     var symbol: String?
     var role: String?
     var disabled: Bool?
     var confirm: String?
-    var value: UIActionValue?
+    var value: PhoneActionValue?
 }
 
 /// Fixed values an action carries (string, number or bool).
-enum UIActionValue: Decodable, Equatable, Hashable {
+enum PhoneActionValue: Decodable, Equatable, Hashable {
     case string(String)
     case number(Double)
     case bool(Bool)
@@ -242,12 +242,12 @@ enum UIActionValue: Decodable, Equatable, Hashable {
     }
 }
 
-struct UIMenuItem: Decodable, Equatable, Hashable, Identifiable {
+struct PhoneMenuItem: Decodable, Equatable, Hashable, Identifiable {
     var title: String
     var symbol: String?
-    var action: UIAction?
-    var children: [UIMenuItem]?
-    var load: UIAction?
+    var action: PhoneAction?
+    var children: [PhoneMenuItem]?
+    var load: PhoneAction?
     var checked: Bool?
     var role: String?
     var disabled: Bool?
@@ -255,54 +255,54 @@ struct UIMenuItem: Decodable, Equatable, Hashable, Identifiable {
     var id: String { (action?.ref ?? load?.ref ?? "") + "|" + title }
 }
 
-struct UISearchField: Decodable, Equatable {
+struct PhoneSearchField: Decodable, Equatable {
     var ref: String
     var placeholder: String
     var value: String
-    var submit: UIAction?
+    var submit: PhoneAction?
 }
 
-struct UISegments: Decodable, Equatable {
-    var items: [UIChoice]
+struct PhoneSegments: Decodable, Equatable {
+    var items: [PhoneChoice]
     var selected: String?
     var ref: String?
 }
 
-struct UIComposer: Decodable, Equatable {
+struct PhoneComposer: Decodable, Equatable {
     var ref: String
     var placeholder: String
     var value: String?
-    var attach: UIAction?
+    var attach: PhoneAction?
 }
 
-struct UIAddress: Decodable, Equatable {
+struct PhoneAddress: Decodable, Equatable {
     var value: String
     var ref: String
     var secure: Bool?
     var title: String?
 }
 
-struct UIDocumentBody: Decodable, Equatable {
+struct PhoneDocumentBody: Decodable, Equatable {
     var text: String
     var ref: String?
     var typeRef: String?
     var format: String?
 }
 
-struct UIAlert: Decodable, Equatable, Identifiable {
+struct PhoneAlert: Decodable, Equatable, Identifiable {
     var title: String
     var message: String?
-    var actions: [UIAction]
+    var actions: [PhoneAction]
 
     var id: String { title + (message ?? "") + actions.map(\.ref).joined() }
 }
 
 /// Entry in the phone's app grid.
-struct UIAppSummary: Decodable, Equatable, Identifiable, Hashable {
+struct PhoneAppSummary: Decodable, Equatable, Identifiable, Hashable {
     var id: String
     var name: String
     var title: String?
-    var icon: UIIcon?
+    var icon: PhoneIcon?
     var kind: String
     var adapter: String?
     var running: Bool
@@ -310,8 +310,8 @@ struct UIAppSummary: Decodable, Equatable, Identifiable, Hashable {
 }
 
 /// Agent → phone on /api/ui.
-struct UIServerMessage: Decodable {
+struct PhoneServerMessage: Decodable {
     var type: String
-    var view: UIAppView?
+    var view: PhoneAppView?
     var message: String?
 }

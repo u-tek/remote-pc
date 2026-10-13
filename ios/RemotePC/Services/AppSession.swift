@@ -12,8 +12,8 @@ final class AppSession {
         case ended(String)
     }
 
-    let summary: UIAppSummary
-    var view: UIAppView?
+    let summary: PhoneAppSummary
+    var view: PhoneAppView?
     var phase: Phase = .connecting
     var status: String?
     var error: String?
@@ -31,7 +31,7 @@ final class AppSession {
     @ObservationIgnored private var stopped = false
     @ObservationIgnored private var retries = 0
 
-    init(client: APIClient, summary: UIAppSummary) {
+    init(client: APIClient, summary: PhoneAppSummary) {
         self.client = client
         self.summary = summary
     }
@@ -79,7 +79,7 @@ final class AppSession {
             case .data(let d): data = d
             @unknown default: continue
             }
-            guard let msg = try? JSONDecoder().decode(UIServerMessage.self, from: data) else { continue }
+            guard let msg = try? JSONDecoder().decode(PhoneServerMessage.self, from: data) else { continue }
             retries = 0
             switch msg.type {
             case "view":
@@ -121,7 +121,7 @@ final class AppSession {
         Haptics.tap()
     }
 
-    func perform(_ action: UIAction, value: Any? = nil) {
+    func perform(_ action: PhoneAction, value: Any? = nil) {
         perform(action.ref, value: value ?? action.value?.any)
     }
 

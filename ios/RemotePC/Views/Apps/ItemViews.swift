@@ -3,7 +3,7 @@ import UIKit
 
 /// Draws one protocol item with the matching native control.
 struct ItemView: View {
-    let item: UIItem
+    let item: PhoneItem
 
     var body: some View {
         switch item.kind {
@@ -36,7 +36,7 @@ struct ItemView: View {
 
 /// The ⋯ menus, context menus and submenus, built from protocol menu items.
 struct MenuContent: View {
-    let items: [UIMenuItem]
+    let items: [PhoneMenuItem]
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -93,11 +93,11 @@ struct MenuLabel: View {
 struct RowLabel: View {
     let title: String
     var subtitle: String?
-    var icon: UIIcon?
+    var icon: PhoneIcon?
 
     var body: some View {
         HStack(spacing: 12) {
-            if let icon { UIIconView(icon: icon) }
+            if let icon { PhoneIconView(icon: icon) }
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                 if let subtitle, !subtitle.isEmpty {
@@ -109,7 +109,7 @@ struct RowLabel: View {
 }
 
 struct NavRow: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -143,7 +143,7 @@ struct NavRow: View {
 }
 
 struct ToggleRow: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -159,7 +159,7 @@ struct ToggleRow: View {
 }
 
 struct CheckRow: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -181,7 +181,7 @@ struct CheckRow: View {
 }
 
 struct ChoiceRow: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
     @State private var picking = false
 
@@ -194,7 +194,7 @@ struct ChoiceRow: View {
         return ""
     }
 
-    private func choose(_ option: UIChoice) {
+    private func choose(_ option: PhoneChoice) {
         if let own = option.ref {
             session.pending[item.ref ?? ""] = option.id
             session.perform(own)
@@ -280,7 +280,7 @@ struct OptionsSheet: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
 
-    private var item: UIItem? {
+    private var item: PhoneItem? {
         let screens = (session.view?.screens ?? []) + (session.view?.sheet.map { [$0] } ?? [])
         for s in screens {
             for sec in s.sections {
@@ -322,7 +322,7 @@ struct OptionsSheet: View {
 }
 
 struct SliderRow: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
     @State private var value: Double = 0
     @State private var editing = false
@@ -352,7 +352,7 @@ struct SliderRow: View {
 }
 
 struct StepperRow: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -369,7 +369,7 @@ struct StepperRow: View {
 }
 
 struct FieldRow: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
     @State private var text = ""
     @State private var sent = ""
@@ -445,7 +445,7 @@ struct FieldRow: View {
 }
 
 struct ButtonItemView: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
     @State private var confirming = false
 
@@ -480,7 +480,7 @@ struct ButtonItemView: View {
 }
 
 struct TextRow: View {
-    let item: UIItem
+    let item: PhoneItem
 
     var body: some View {
         let text = item.text ?? ""
@@ -520,7 +520,7 @@ struct TextRow: View {
 }
 
 struct HeadingRow: View {
-    let item: UIItem
+    let item: PhoneItem
 
     var body: some View {
         let font: Font = {
@@ -557,7 +557,7 @@ enum ActionLink {
 }
 
 struct ParagraphRow: View {
-    let item: UIItem
+    let item: PhoneItem
 
     private var attributed: AttributedString {
         var out = AttributedString()
@@ -588,7 +588,7 @@ struct ParagraphRow: View {
 }
 
 struct ImageRow: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -606,7 +606,7 @@ struct ImageRow: View {
 }
 
 struct ProgressRow: View {
-    let item: UIItem
+    let item: PhoneItem
 
     var body: some View {
         if let v = item.numberValue {
@@ -625,7 +625,7 @@ struct ProgressRow: View {
 }
 
 struct ListRow: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -671,7 +671,7 @@ struct ListRow: View {
             if item.unread == true {
                 Circle().fill(Color.accentColor).frame(width: 9, height: 9).padding(.top, item.detail == nil ? 0 : 6)
             }
-            if let icon = item.icon { UIIconView(icon: icon, size: item.detail == nil ? 30 : 40) }
+            if let icon = item.icon { PhoneIconView(icon: icon, size: item.detail == nil ? 30 : 40) }
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(item.title ?? "")
@@ -699,7 +699,7 @@ struct ListRow: View {
 }
 
 struct TileView: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -714,7 +714,7 @@ struct TileView: View {
                             .frame(maxWidth: .infinity)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     } else if let icon = item.icon {
-                        UIIconView(icon: icon, size: 56).frame(height: 84)
+                        PhoneIconView(icon: icon, size: 56).frame(height: 84)
                     } else {
                         RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(.secondarySystemFill)).frame(height: 84)
                     }
@@ -732,7 +732,7 @@ struct TileView: View {
 }
 
 struct MessageBubble: View {
-    let item: UIItem
+    let item: PhoneItem
 
     var body: some View {
         if item.system == true {
@@ -746,7 +746,7 @@ struct MessageBubble: View {
             HStack(alignment: .bottom, spacing: 8) {
                 if outgoing { Spacer(minLength: 48) }
                 if !outgoing {
-                    if let avatar = item.avatar { UIIconView(icon: avatar, size: 30) } else { Color.clear.frame(width: 30, height: 1) }
+                    if let avatar = item.avatar { PhoneIconView(icon: avatar, size: 30) } else { Color.clear.frame(width: 30, height: 1) }
                 }
                 VStack(alignment: outgoing ? .trailing : .leading, spacing: 3) {
                     if let author = item.author, !outgoing {
@@ -786,7 +786,7 @@ struct MessageBubble: View {
 }
 
 struct RecordCard: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -815,7 +815,7 @@ struct RecordCard: View {
 
 /// Calculator-style keys in the original layout.
 struct KeypadView: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -875,7 +875,7 @@ struct KeyPressStyle: ButtonStyle {
 }
 
 struct ButtonsRow: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -897,7 +897,7 @@ struct ButtonsRow: View {
 }
 
 struct ProfileRow: View {
-    let item: UIItem
+    let item: PhoneItem
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -905,7 +905,7 @@ struct ProfileRow: View {
             if let tap = item.tap { session.perform(tap) }
         } label: {
             HStack(spacing: 14) {
-                UIIconView(icon: item.icon ?? UIIcon(symbol: "person.crop.circle.fill", color: "gray", style: "plain"), size: 60)
+                PhoneIconView(icon: item.icon ?? PhoneIcon(symbol: "person.crop.circle.fill", color: "gray", style: "plain"), size: 60)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(item.title ?? "").font(.title3.weight(.semibold))
                     if let s = item.subtitle { Text(s).font(.footnote).foregroundStyle(.secondary) }

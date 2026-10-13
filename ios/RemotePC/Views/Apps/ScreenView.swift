@@ -3,7 +3,7 @@ import UIKit
 
 /// One screen of a PC app, drawn the way iOS would draw that kind of screen.
 struct ScreenView: View {
-    let screen: UIScreen
+    let screen: PhoneScreen
     /// Shown on the first screen of an app: goes back to the home screen.
     var close: (() -> Void)?
     /// Sheets put Cancel/Done in the navigation bar.
@@ -49,7 +49,7 @@ struct ScreenView: View {
         }
     }
 
-    private var onlyLive: UIItem? {
+    private var onlyLive: PhoneItem? {
         let all = screen.sections.flatMap(\.items)
         return all.count == 1 && all[0].kind == "live" ? all[0] : nil
     }
@@ -153,7 +153,7 @@ struct ScreenView: View {
 // MARK: - Search
 
 struct SearchModifier: ViewModifier {
-    let field: UISearchField?
+    let field: PhoneSearchField?
     @Environment(AppSession.self) private var session
     @State private var text = ""
     @State private var debounce: Task<Void, Never>?
@@ -185,7 +185,7 @@ struct SearchModifier: ViewModifier {
 // MARK: - Accessories
 
 struct SegmentsBar: View {
-    let segments: UISegments
+    let segments: PhoneSegments
     @Environment(AppSession.self) private var session
     @State private var selection = ""
 
@@ -206,7 +206,7 @@ struct SegmentsBar: View {
 }
 
 struct AddressBar: View {
-    let address: UIAddress
+    let address: PhoneAddress
     @Environment(AppSession.self) private var session
     @State private var text = ""
     @FocusState private var editing: Bool
@@ -243,7 +243,7 @@ struct AddressBar: View {
 }
 
 struct ComposerBar: View {
-    let composer: UIComposer
+    let composer: PhoneComposer
     @Environment(AppSession.self) private var session
     @State private var text = ""
 
@@ -280,7 +280,7 @@ struct ComposerBar: View {
 
 /// Settings-style grouped lists and plain lists (files, mail).
 struct ListContent: View {
-    let screen: UIScreen
+    let screen: PhoneScreen
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -332,13 +332,13 @@ extension View {
 }
 
 @MainActor
-func pullToRefresh(session: AppSession, screen: UIScreen) async {
+func pullToRefresh(session: AppSession, screen: PhoneScreen) async {
     if let r = screen.refresh { session.perform(r) } else { session.refresh() }
     try? await Task.sleep(for: .milliseconds(700))
 }
 
 struct TileGrid: View {
-    let items: [UIItem]
+    let items: [PhoneItem]
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 96, maximum: 140), spacing: 12)], spacing: 16) {
@@ -348,7 +348,7 @@ struct TileGrid: View {
 }
 
 struct GridContent: View {
-    let screen: UIScreen
+    let screen: PhoneScreen
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -367,7 +367,7 @@ struct GridContent: View {
 
 /// Web pages, mail and help: readable flowing text.
 struct ArticleContent: View {
-    let screen: UIScreen
+    let screen: PhoneScreen
     @Environment(AppSession.self) private var session
 
     var body: some View {
@@ -393,7 +393,7 @@ struct ArticleContent: View {
 
 /// Chat: bubbles from the bottom up; the composer sits in the bottom inset.
 struct ChatContent: View {
-    let screen: UIScreen
+    let screen: PhoneScreen
 
     var body: some View {
         let items = screen.sections.flatMap(\.items)
@@ -416,7 +416,7 @@ struct ChatContent: View {
 
 /// Text documents: edit in place (plain text) or type at the PC's cursor (rich documents).
 struct DocumentContent: View {
-    let screen: UIScreen
+    let screen: PhoneScreen
     @Environment(AppSession.self) private var session
     @State private var text = ""
     @State private var lastSent = ""
@@ -424,7 +424,7 @@ struct DocumentContent: View {
     @State private var debounce: Task<Void, Never>?
     @FocusState private var focused: Bool
 
-    private var body_: UIDocumentBody? { screen.document }
+    private var body_: PhoneDocumentBody? { screen.document }
 
     var body: some View {
         VStack(spacing: 0) {

@@ -75,8 +75,8 @@ struct RemoteImage<Placeholder: View>: View {
 }
 
 /// An icon from the protocol: SF Symbol (tile, circle or plain), picture, or initials.
-struct UIIconView: View {
-    let icon: UIIcon
+struct PhoneIconView: View {
+    let icon: PhoneIcon
     var size: CGFloat = 29
 
     private var tint: Color { Color.ui(icon.color) ?? .accentColor }

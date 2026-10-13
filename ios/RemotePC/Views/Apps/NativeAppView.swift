@@ -3,7 +3,7 @@ import UIKit
 
 /// A PC app open on the phone, full screen, drawn with native controls.
 struct NativeAppView: View {
-    let summary: UIAppSummary
+    let summary: PhoneAppSummary
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var session: AppSession?
@@ -126,7 +126,7 @@ struct AppContainer: View {
     }
 
     /// The sheet as the PC currently has it (the presented copy would otherwise go stale).
-    private func liveSheet(_ sheet: UIScreen) -> UIScreen {
+    private func liveSheet(_ sheet: PhoneScreen) -> PhoneScreen {
         if let current = session.view?.sheet, current.id == sheet.id { return current }
         return sheet
     }
@@ -145,7 +145,7 @@ struct AppContainer: View {
         default:
             VStack(spacing: 16) {
                 if let icon = session.summary.icon {
-                    UIIconView(icon: icon, size: 72)
+                    PhoneIconView(icon: icon, size: 72)
                 } else {
                     LetterTile(name: session.summary.name, size: 72)
                 }

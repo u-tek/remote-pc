@@ -5,10 +5,10 @@ import UIKit
 /// apps made with the SDK, and the PC's system tools. The live screen is just one more tool.
 struct AppHomeView: View {
     @Environment(AppModel.self) private var model
-    @State private var apps: [UIAppSummary] = []
+    @State private var apps: [PhoneAppSummary] = []
     @State private var startApps: [AppEntry] = []
     @State private var search = ""
-    @State private var opened: UIAppSummary?
+    @State private var opened: PhoneAppSummary?
     @State private var tool: Tool?
     @State private var launching: String?
     @State private var message: String?
@@ -22,8 +22,8 @@ struct AppHomeView: View {
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 4)
 
-    private var windows: [UIAppSummary] { apps.filter { $0.kind == "window" } }
-    private var sdkApps: [UIAppSummary] { apps.filter { $0.kind == "sdk" } }
+    private var windows: [PhoneAppSummary] { apps.filter { $0.kind == "window" } }
+    private var sdkApps: [PhoneAppSummary] { apps.filter { $0.kind == "sdk" } }
 
     var body: some View {
         ZStack {
@@ -119,7 +119,7 @@ struct AppHomeView: View {
         .onChange(of: searching) { _, now in if now, startApps.isEmpty { Task { await loadStartApps() } } }
     }
 
-    private func grid(title: String, items: [UIAppSummary], empty: String?) -> some View {
+    private func grid(title: String, items: [PhoneAppSummary], empty: String?) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title).font(.headline).foregroundStyle(.white).shadow(color: .black.opacity(0.3), radius: 4)
             if items.isEmpty, let empty {
@@ -139,13 +139,13 @@ struct AppHomeView: View {
     }
 
     /// Two windows of the same app are told apart by their document.
-    private func label(for app: UIAppSummary, among items: [UIAppSummary]) -> String {
+    private func label(for app: PhoneAppSummary, among items: [PhoneAppSummary]) -> String {
         let twins = items.filter { $0.name == app.name }.count > 1
         return twins ? (app.title ?? app.name) : app.name
     }
 
     @ViewBuilder
-    private func appIcon(_ app: UIAppSummary) -> some View {
+    private func appIcon(_ app: PhoneAppSummary) -> some View {
         if app.kind == "window", let image = app.icon?.image {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(.ultraThinMaterial)
@@ -157,14 +157,14 @@ struct AppHomeView: View {
                 )
                 .environment(\.colorScheme, .light)
         } else if let icon = app.icon {
-            UIIconView(icon: icon, size: 60)
+            PhoneIconView(icon: icon, size: 60)
         } else {
             LetterTile(name: app.name, size: 60)
         }
     }
 
     @ViewBuilder
-    private func appMenu(_ app: UIAppSummary) -> some View {
+    private func appMenu(_ app: PhoneAppSummary) -> some View {
         Button {
             opened = app
         } label: {
@@ -278,7 +278,7 @@ struct AppHomeView: View {
 
     private func load() async {
         guard let client = model.client else { return }
-        let fetched = try? await client.get("/api/ui/apps", as: [UIAppSummary].self)
+        let fetched = try? await client.get("/api/ui/apps", as: [PhoneAppSummary].self)
         if let list = fetched {
             if list != apps { withAnimation(.spring(duration: 0.35)) { apps = list } }
             loaded = true
@@ -293,7 +293,7 @@ struct AppHomeView: View {
 
     private func launch(_ app: AppEntry) async {
         guard let client = model.client else { return }
-        struct Launched: Decodable { var app: UIAppSummary? }
+        struct Launched: Decodable { var app: PhoneAppSummary? }
         launching = app.id
         defer { launching = nil }
         do {
