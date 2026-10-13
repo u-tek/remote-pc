@@ -146,8 +146,9 @@ export function rewrite(snap: USnapshot, opts: RewriteOptions): Rewritten {
     trail: mapped.trail,
     up,
     coverage,
-    source: { root, regions, ctx },
-  };
+  } as Rewritten;
+  // Not enumerable: the parsed tree is circular and must never end up in JSON.
+  Object.defineProperty(out, 'source', { value: { root, regions, ctx }, enumerable: false });
   applyPopups(out, snap, root, regions, ctx, opts, W);
   return out;
 }
