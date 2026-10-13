@@ -29,7 +29,10 @@ test('Settings becomes a sidebar home and an iOS-style settings page', () => {
   assert.equal(profile.kind, 'profile');
   const nav = out.home.sections[1].items as NavItem[];
   assert.equal(nav.length, 12);
-  assert.ok(nav.every((n) => n.icon?.style === 'tile'), 'every category gets a colored tile');
+  assert.ok(
+    nav.every((n) => n.icon?.style === 'tile'),
+    'every category gets a colored tile',
+  );
   assert.equal(nav.find((n) => n.selected)?.title, 'System');
   assert.equal(out.home.search?.placeholder, 'Find a setting');
 

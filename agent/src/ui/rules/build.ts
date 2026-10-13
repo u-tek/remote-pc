@@ -40,6 +40,8 @@ export interface Rewritten {
   openMenu?: MenuItem[];
   /** Number of native items produced (how well the window was understood). */
   coverage: number;
+  /** The parsed window, for adapters that reshape the result (not sent to the phone). */
+  source: { root: Node; regions: Regions; ctx: MapContext };
 }
 
 export function rewrite(snap: USnapshot, opts: RewriteOptions): Rewritten {
@@ -144,6 +146,7 @@ export function rewrite(snap: USnapshot, opts: RewriteOptions): Rewritten {
     trail: mapped.trail,
     up,
     coverage,
+    source: { root, regions, ctx },
   };
   applyPopups(out, snap, root, regions, ctx, opts, W);
   return out;

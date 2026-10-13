@@ -103,7 +103,10 @@ describe('native app sessions', () => {
     c.ws.send(JSON.stringify({ type: 'action', ref: night.ref, value: true }));
     await waitFor(() => {
       const v = lastView(c.messages);
-      const toggle = v?.view.screens.at(-1)?.sections.flatMap((s) => s.items).find((i) => i.kind === 'toggle');
+      const toggle = v?.view.screens
+        .at(-1)
+        ?.sections.flatMap((s) => s.items)
+        .find((i) => i.kind === 'toggle');
       return toggle && toggle.kind === 'toggle' && toggle.on;
     });
     assert.deepEqual(backend.calls.at(-1)?.slice(0, 1), ['toggle']);

@@ -10,11 +10,7 @@ type FromApp =
   | { type: 'toast'; text: string };
 
 /** What the agent sends to an SDK app. */
-export type ToApp =
-  | { type: 'welcome'; protocol: number }
-  | { type: 'open'; viewers: number }
-  | { type: 'close' }
-  | ClientMessage;
+export type ToApp = { type: 'welcome'; protocol: number } | { type: 'open'; viewers: number } | { type: 'close' } | ClientMessage;
 
 interface SdkApp {
   id: string;
@@ -58,7 +54,15 @@ export class SdkHub {
         }
         const existing = this.apps.get(info.id);
         if (existing && existing.ws !== ws) existing.ws.close(4001, 'replaced by a newer connection');
-        app = { id: info.id, name: String(info.name).slice(0, 60), icon: info.icon, tint: info.tint, description: info.description, ws, viewers: existing?.viewers ?? new Set() };
+        app = {
+          id: info.id,
+          name: String(info.name).slice(0, 60),
+          icon: info.icon,
+          tint: info.tint,
+          description: info.description,
+          ws,
+          viewers: existing?.viewers ?? new Set(),
+        };
         this.apps.set(info.id, app);
         log.info(`sdk app connected: ${app.id}`);
         if (app.viewers.size) sendApp({ type: 'open', viewers: app.viewers.size });

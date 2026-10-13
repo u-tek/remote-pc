@@ -39,5 +39,5 @@ export interface Adapter {
   /** Handle the adapter's own action refs; return false to fall through to the generic handling. */
   action?(a: ParsedAction, value: unknown, ctx: AdapterContext): Promise<boolean>;
   /** Open straight into the page instead of the app's sidebar. */
-  startInPage?: boolean;
+  startInPage?: boolean | ((rw: Rewritten) => boolean);
 }

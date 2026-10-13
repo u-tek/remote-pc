@@ -45,7 +45,7 @@ export class UiService {
     if (this.opts.enabled) {
       const windows = await this.opts.backend.windows();
       for (const w of windows) {
-        if (!w.title || HIDDEN.test(w.process)) continue;
+        if (!w.title || HIDDEN.test(w.process) || w.title === 'Program Manager') continue;
         out.push(this.summary(w));
       }
     }
@@ -98,7 +98,11 @@ export class UiService {
       handle = viewer.handle;
       close = viewer.close;
     } else if (/^w\d+$/.test(app) && this.opts.enabled) {
-      const session = new WindowSession(Number(app.slice(1)), { backend: this.opts.backend, adapters: this.opts.adapters, pollMs: this.opts.pollMs(), memory: this.memory }, send);
+      const session = new WindowSession(
+        Number(app.slice(1)),
+        { backend: this.opts.backend, adapters: this.opts.adapters, pollMs: this.opts.pollMs(), memory: this.memory },
+        send,
+      );
       this.sessions.add(session);
       void this.setReader(true);
       void session.start();

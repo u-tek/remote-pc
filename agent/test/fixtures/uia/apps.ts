@@ -380,3 +380,156 @@ export function webArticle() {
 export function opaqueGame() {
   return win('game', 'Space Game', [1280, 720], [el('Pane', '', [0, 32, 1280, 688], { cls: 'UnityWndClass', fw: 'Win32' })]);
 }
+
+const CH = { fw: 'Chrome' } as const;
+const VIEWS = { fw: 'Views' } as const;
+
+/** Chrome with two tabs on an article. */
+export function chromeArticle() {
+  return win(
+    'chrome',
+    'Rust 1.80 released - The Rust Blog - Google Chrome',
+    [1280, 900],
+    [
+      el('Pane', 'Google Chrome', [0, 0, 1280, 90], VIEWS, [
+        el('Tab', '', [0, 0, 900, 40], VIEWS, [
+          el('TabItem', 'Rust 1.80 released - The Rust Blog', [0, 0, 240, 40], { sel: 1, ...VIEWS }, [
+            el('Image', '', [10, 12, 16, 16], VIEWS),
+            el('Button', 'Close', [210, 10, 20, 20], { inv: 1, ...VIEWS }),
+          ]),
+          el('TabItem', 'Inbox (3) - Gmail', [240, 0, 240, 40], { sel: 0, ...VIEWS }, [el('Button', 'Close', [450, 10, 20, 20], { inv: 1, ...VIEWS })]),
+          el('Button', 'New Tab', [490, 6, 28, 28], { inv: 1, ...VIEWS }),
+        ]),
+        el('ToolBar', '', [0, 40, 1280, 50], VIEWS, [
+          el('Button', 'Back', [8, 46, 36, 36], { inv: 1, ...VIEWS }),
+          el('Button', 'Forward', [48, 46, 36, 36], { inv: 1, dis: 1, ...VIEWS }),
+          el('Button', 'Reload', [88, 46, 36, 36], { inv: 1, ...VIEWS }),
+          el('Edit', 'Address and search bar', [140, 48, 900, 32], { val: 'blog.rust-lang.org/2024/07/25/Rust-1.80.0.html', ...VIEWS }),
+          el('Button', 'Chrome', [1240, 46, 36, 36], { inv: 1, exp: 0, ...VIEWS }),
+        ]),
+      ]),
+      el('Document', 'Rust 1.80 released', [0, 90, 1280, 810], { val: 'https://blog.rust-lang.org/2024/07/25/Rust-1.80.0.html', ...CH }, [
+        el('Text', 'Announcing Rust 1.80.0', [200, 120, 800, 48], { lct: 'heading', ...CH }),
+        el('Group', '', [200, 180, 800, 60], CH, [
+          el('Text', 'The Rust team is happy to announce a new version of Rust, 1.80.0. You can get it with', [200, 180, 700, 20], CH),
+          el('Hyperlink', 'rustup', [900, 180, 60, 20], { inv: 1, ...CH }),
+          el('Text', '.', [960, 180, 6, 20], CH),
+        ]),
+        el('Text', "What's in 1.80.0 stable", [200, 260, 800, 32], { lct: 'heading', ...CH }),
+        el('Text', 'LazyCell and LazyLock are new "lazy" types that delay initialization of their data until first access.', [200, 300, 800, 40], CH),
+      ]),
+    ],
+  );
+}
+
+/** Discord: servers, channels, messages and the message box. */
+export function discordChannel() {
+  const channels = ['welcome (text channel)', 'general (text channel)', 'random (text channel)', 'Lounge (voice channel)'];
+  return win(
+    'Discord',
+    '#general | Rust Friends - Discord',
+    [1400, 900],
+    [
+      el('Document', 'Discord', [0, 32, 1400, 868], CH, [
+        el('Tree', 'Servers sidebar', [0, 40, 72, 860], CH, [
+          el('TreeItem', 'Rust Friends', [12, 60, 48, 48], { sel: 1, ...CH }),
+          el('TreeItem', 'Home', [12, 120, 48, 48], { sel: 0, ...CH }),
+        ]),
+        el(
+          'List',
+          'Channels',
+          [72, 90, 240, 700],
+          CH,
+          channels.map((c, i) => el('ListItem', c, [80, 100 + i * 34, 220, 32], { sel: c.startsWith('general') ? 1 : 0, ...CH })),
+        ),
+        el('Group', 'User area', [72, 840, 240, 52], CH, [
+          el('Image', 'avatar', [80, 848, 32, 32], CH),
+          el('Text', 'alex', [120, 848, 100, 18], CH),
+          el('Text', 'Online', [120, 866, 100, 16], CH),
+        ]),
+        el('Text', 'general', [330, 46, 200, 24], { lct: 'heading', ...CH }),
+        el('Button', 'Start Voice Call', [1200, 44, 32, 32], { inv: 1, ...CH }),
+        el('List', 'Messages in general', [320, 90, 1080, 690], CH, [
+          el('Group', '', [320, 100, 1080, 24], CH, [el('Text', 'January 5, 2024', [800, 100, 120, 20], CH)]),
+          el('ListItem', '', [320, 130, 1080, 60], CH, [
+            el('Image', 'Sam', [336, 136, 40, 40], CH),
+            el('Hyperlink', 'Sam', [392, 134, 40, 20], { inv: 1, ...CH }),
+            el('Text', 'Today at 3:14 PM', [440, 136, 120, 16], CH),
+            el('Text', 'anyone tried the new LazyLock?', [392, 158, 400, 20], CH),
+          ]),
+          el('ListItem', '', [320, 192, 1080, 24], CH, [el('Text', 'it replaces once_cell for me', [392, 194, 400, 20], CH)]),
+          el('ListItem', '', [320, 220, 1080, 70], CH, [
+            el('Image', 'alex', [336, 226, 40, 40], CH),
+            el('Hyperlink', 'alex', [392, 224, 40, 20], { inv: 1, ...CH }),
+            el('Text', 'Today at 3:16 PM', [440, 226, 120, 16], CH),
+            el('Text', 'yes! works great', [392, 248, 400, 20], CH),
+            el('Button', '👍, 2 reactions, press to react', [392, 270, 40, 20], { inv: 1, ...CH }),
+          ]),
+        ]),
+        el('Button', 'Upload a File', [330, 812, 32, 32], { inv: 1, ...CH }),
+        el('Edit', 'Message #general', [370, 806, 1000, 44], { val: '', kf: 1, ...CH }),
+      ]),
+    ],
+  );
+}
+
+/** Word with a short document. */
+export function wordDocument() {
+  return win(
+    'WINWORD',
+    'Report.docx - Word',
+    [1400, 900],
+    [
+      el('Pane', 'Ribbon', [0, 32, 1400, 150], { aid: 'Ribbon', fw: 'Win32' }, [
+        el('Tab', 'Ribbon Tabs', [0, 32, 1400, 30], { fw: 'Win32' }, [
+          el('TabItem', 'Home', [60, 32, 60, 30], { sel: 1, fw: 'Win32' }),
+          el('TabItem', 'Insert', [120, 32, 60, 30], { sel: 0, fw: 'Win32' }),
+        ]),
+        el('ToolBar', 'Lower Ribbon', [0, 62, 1400, 120], { fw: 'Win32' }, [
+          el('Group', 'Clipboard', [0, 62, 120, 120], { fw: 'Win32' }, [
+            el('SplitButton', 'Paste', [4, 66, 50, 80], { inv: 1, exp: 0, fw: 'Win32' }),
+            el('Button', 'Cut', [60, 66, 50, 24], { inv: 1, fw: 'Win32' }),
+          ]),
+          el('Group', 'Font', [120, 62, 300, 120], { fw: 'Win32' }, [
+            el('Button', 'Bold', [124, 120, 24, 24], { tog: 0, fw: 'Win32' }),
+            el('Button', 'Italic', [150, 120, 24, 24], { tog: 1, fw: 'Win32' }),
+            el('Button', 'Underline', [176, 120, 24, 24], { tog: 0, fw: 'Win32' }),
+          ]),
+        ]),
+      ]),
+      el('Document', 'Page 1 content', [100, 190, 1200, 680], { cls: '_WwG', txt: 1, tx: 'Quarterly report\rSales grew 12%.', fw: 'Win32' }),
+    ],
+  );
+}
+
+/** Excel with a small table. */
+export function excelSheet() {
+  const cells: Array<[string, string]> = [
+    ['A1', 'Name'],
+    ['B1', 'Amount'],
+    ['A2', 'Coffee'],
+    ['B2', '4.50'],
+    ['A3', 'Lunch'],
+    ['B3', '12.00'],
+  ];
+  return win(
+    'EXCEL',
+    'Budget.xlsx - Excel',
+    [1400, 900],
+    [
+      el('Edit', 'Name Box', [0, 190, 100, 24], { val: 'A2', fw: 'Win32' }),
+      el('Edit', 'Formula Bar', [120, 190, 1200, 24], { val: 'Coffee', fw: 'Win32' }),
+      el(
+        'DataGrid',
+        'Grid',
+        [0, 220, 1400, 600],
+        { fw: 'Win32' },
+        cells.map(([n, v], i) =>
+          el('DataItem', `${n}`, [(i % 2) * 100, 220 + Math.floor(i / 2) * 20, 100, 20], { val: v, sel: n === 'A2' ? 1 : 0, fw: 'Win32' }),
+        ),
+      ),
+      el('TabItem', 'Sheet1', [0, 840, 80, 24], { sel: 1, fw: 'Win32' }),
+      el('TabItem', 'Sheet2', [80, 840, 80, 24], { sel: 0, fw: 'Win32' }),
+    ],
+  );
+}

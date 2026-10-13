@@ -196,7 +196,9 @@ export class WindowSession {
   /** Build the phone's navigation stack: sidebar → breadcrumb levels → page. */
   compose(rw: Rewritten): AppView {
     if (this.inPage === undefined) {
-      this.inPage = !rw.home || Boolean(this.adapter?.startInPage) || (rw.page.style !== 'form' && rw.page.style !== undefined);
+      const start = this.adapter?.startInPage;
+      const adapterSays = typeof start === 'function' ? start(rw) : start;
+      this.inPage = !rw.home || (adapterSays ?? (rw.page.style !== 'form' && rw.page.style !== undefined));
     }
     const page = this.withAccumulated(rw.page);
     const screens: Screen[] = [];
@@ -371,6 +373,13 @@ export class WindowSession {
     const rw = this.last;
     if (!rw) return;
     const b = this.deps.backend;
+    // Sheets the adapter drew itself (tab switcher…) close without touching the PC.
+    if (rw.sheet?.id.startsWith('local:')) {
+      await this.adapter?.action?.({ ref: 'dismiss', kind: 'dismiss', id: '' }, undefined, this.ctx());
+      this.lastSent = '';
+      await this.refresh();
+      return;
+    }
     const cancel = rw.alert?.actions.find((a) => a.role === 'cancel') ?? rw.sheet?.actions?.find((a) => a.role === 'cancel');
     if (cancel && !rw.sheet?.id.startsWith('menu:')) {
       const p = parseRef(cancel.ref);
