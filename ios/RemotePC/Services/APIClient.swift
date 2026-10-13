@@ -88,13 +88,13 @@ final class APIClient {
     }
 
     func get<T: Decodable>(_ path: String, query: [String: String] = [:], as type: T.Type = T.self) async throws -> T {
-        let data = try await data("GET", path, query: query)
+        let data = try await self.data("GET", path, query: query)
         return try decoder.decode(T.self, from: data)
     }
 
     @discardableResult
     func send<T: Decodable>(_ method: String, _ path: String, query: [String: String] = [:], json: [String: Any]? = nil, as type: T.Type = Empty.self, timeout: TimeInterval? = nil) async throws -> T {
-        let data = try await data(method, path, query: query, json: json, timeout: timeout)
+        let data = try await self.data(method, path, query: query, json: json, timeout: timeout)
         if T.self == Empty.self { return Empty() as! T }
         return try decoder.decode(T.self, from: data)
     }
