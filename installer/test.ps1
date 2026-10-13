@@ -39,8 +39,14 @@ function Wait-For([scriptblock]$Test, [int]$Seconds) {
 }
 
 Write-Host "Installing $Setup ($Components; $Tasks)"
-$p = Start-Process $Setup -Wait -PassThru -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/COMPONENTS=$Components", "/TASKS=$Tasks", "/LOG=$(Join-Path $env:TEMP 'RemotePC-install.log')"
+# Not Start-Process -Wait: that also waits for the agent the installer leaves running.
+$p = Start-Process $Setup -PassThru -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/COMPONENTS=$Components", "/TASKS=$Tasks", "/LOG=$(Join-Path $env:TEMP 'RemotePC-install.log')"
+$finished = $p.WaitForExit(25 * 60 * 1000)
 if (Test-Path $setupLog) { Write-Host '--- setup.ps1 ---'; Get-Content $setupLog | Write-Host; Write-Host '---' }
+if (-not $finished) {
+  Get-Content (Join-Path $env:TEMP 'RemotePC-install.log') -ErrorAction SilentlyContinue | Select-Object -Last 40 | Write-Host
+  throw 'The installer did not finish within 25 minutes'
+}
 Check 'installer exit code' { if ($p.ExitCode -ne 0) { throw "exit code $($p.ExitCode)" }; $true }
 Check 'files' { (Test-Path "$app\node\node.exe") -and (Test-Path "$app\agent\dist\index.js") -and (Test-Path "$app\agent\node_modules\ws") }
 Check 'no bundled Claude binary' { -not (Test-Path "$app\agent\node_modules\@anthropic-ai\claude-agent-sdk-win32-x64") }
@@ -82,7 +88,8 @@ Check 'Remote PC shortcut starts the agent after it stopped' {
 }
 
 Write-Host 'Uninstalling'
-Start-Process "$app\unins000.exe" -Wait -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'
+$u = Start-Process "$app\unins000.exe" -PassThru -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'
+$u.WaitForExit()
 # The uninstaller re-launches itself from a temp copy; wait for that one to finish.
 [void](Wait-For { -not (Test-Path "$app\unins000.exe") } 120)
 Check 'agent stopped' { $r = $null; try { $r = Invoke-RestMethod "$base/health" -TimeoutSec 2 } catch {}; -not $r }

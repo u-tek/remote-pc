@@ -108,13 +108,21 @@ function Test-Admin {
   return ([Security.Principal.WindowsPrincipal]$id).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+# Start-Process -Wait also waits for everything the process starts (a tray app, our agent), which
+# can be forever; wait for the process itself.
+function Start-AndWait([string]$File, [string[]]$Arguments, [switch]$Elevated) {
+  if ($Elevated) { $p = Start-Process $File -ArgumentList $Arguments -Verb RunAs -WindowStyle Hidden -PassThru }
+  else { $p = Start-Process $File -ArgumentList $Arguments -PassThru }
+  $p.WaitForExit()
+  return $p.ExitCode
+}
+
 # Runs a script as administrator (one UAC prompt) unless we already are.
 function Invoke-Elevated([string]$Script) {
   if (Test-Admin) { & ([scriptblock]::Create($Script)); return }
   $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Script))
-  $p = Start-Process powershell.exe -Verb RunAs -WindowStyle Hidden -Wait -PassThru `
-    -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', $encoded
-  if ($p.ExitCode -ne 0) { throw "the elevated step failed (exit code $($p.ExitCode))" }
+  $code = Start-AndWait 'powershell.exe' @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', $encoded) -Elevated
+  if ($code -ne 0) { throw "the elevated step failed (exit code $code)" }
 }
 
 function Stop-Agent {
@@ -174,7 +182,7 @@ if ($want.Tailscale) {
       if (-not (Install-Winget 'Tailscale.Tailscale')) {
         $f = Join-Path $env:TEMP 'tailscale-setup.exe'
         Get-File 'https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe' $f
-        Start-Process $f -ArgumentList '/passive' -Wait
+        [void](Start-AndWait $f @('/passive'))
       }
       Update-Path
       $ts = Find-Exe 'tailscale' $tsCandidates
@@ -223,7 +231,7 @@ if ($want.Claude) {
         $asset = $rel.assets | Where-Object { $_.name -match '^Git-.*-64-bit\.exe$' } | Select-Object -First 1
         $f = Join-Path $env:TEMP $asset.name
         Get-File $asset.browser_download_url $f
-        Start-Process $f -ArgumentList '/VERYSILENT', '/NORESTART', '/SUPPRESSMSGBOXES' -Wait
+        [void](Start-AndWait $f @('/VERYSILENT', '/NORESTART', '/SUPPRESSMSGBOXES'))
       }
       Update-Path
       $git = Find-Exe 'git' @("$env:ProgramFiles\Git\cmd\git.exe")
@@ -384,9 +392,11 @@ if ($want.Startup) {
 Step 'Starting Remote PC'
 Stop-Agent
 Update-Path
-$welcome = @($Agent, 'welcome', '--start')
+$welcome = @("`"$Agent`"", 'welcome', '--start')
 if ($Unattended) { $welcome += '--no-open' }
-Show-Native $Node $welcome
+# Not through a pipe: the agent it starts in the background would hold the pipe open.
+$p = Start-Process $Node -ArgumentList $welcome -NoNewWindow -PassThru
+[void]$p.WaitForExit(120000)
 $config = (Read-Native $Node @($Agent, 'config')).Trim()
 $port = 8787
 try { $port = (Get-Content -LiteralPath $config -Raw | ConvertFrom-Json).port } catch {}
