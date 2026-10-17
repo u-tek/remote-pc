@@ -10,6 +10,10 @@ struct PCProfile: Codable, Identifiable, Hashable {
     var name: String
     var host: String
     var port: Int
+    /// HTTPS (the PC's Tailscale certificate). Plain HTTP is refused inside LiveContainer.
+    var secure: Bool? = nil
+
+    var usesHTTPS: Bool { secure ?? host.lowercased().hasSuffix(".ts.net") }
 }
 
 enum ConnectionState: Equatable {
@@ -40,12 +44,13 @@ struct Banner: Identifiable, Equatable {
     var sessionKey: String?
 }
 
-/// Parses `remotepc://pair?host=…&port=…&token=…&name=…` from the agent's QR code.
+/// Parses `remotepc://pair?host=…&port=…&token=…&name=…[&tls=1]` from the agent's QR code.
 struct PairingLink {
     var host: String
     var port: Int
     var token: String
     var name: String
+    var secure: Bool
 
     init?(url: URL) {
         guard url.scheme?.lowercased() == "remotepc",
@@ -56,6 +61,7 @@ struct PairingLink {
         self.port = Int(items["port"] ?? "") ?? 8787
         self.token = token
         self.name = (items["name"]?.isEmpty == false ? items["name"] : nil) ?? host
+        self.secure = items["tls"] == "1" || host.lowercased().hasSuffix(".ts.net")
     }
 
     init?(string: String) {
@@ -123,11 +129,12 @@ final class AppModel {
         defaults.set(selectedID?.uuidString, forKey: "selectedPC")
     }
 
-    func addPC(name: String, host: String, port: Int, token: String) {
+    func addPC(name: String, host: String, port: Int, token: String, secure: Bool = false) {
         let cleanHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
         let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         var pc = pcs.first { $0.host == cleanHost && $0.port == port } ?? PCProfile(id: UUID(), name: cleanName, host: cleanHost, port: port)
         pc.name = cleanName.isEmpty ? cleanHost : cleanName
+        pc.secure = secure || cleanHost.lowercased().hasSuffix(".ts.net")
         if let i = pcs.firstIndex(where: { $0.id == pc.id }) {
             pcs[i] = pc
         } else {
@@ -164,7 +171,7 @@ final class AppModel {
     @discardableResult
     func handleOpenURL(_ url: URL) -> Bool {
         guard let link = PairingLink(url: url) else { return false }
-        addPC(name: link.name, host: link.host, port: link.port, token: link.token)
+        addPC(name: link.name, host: link.host, port: link.port, token: link.token, secure: link.secure)
         selectedTab = .agents
         return true
     }
@@ -177,7 +184,7 @@ final class AppModel {
             connection = .offline("missing token, pair again")
             return
         }
-        let client = APIClient(host: pc.host, port: pc.port, token: token)
+        let client = APIClient(host: pc.host, port: pc.port, token: token, secure: pc.usesHTTPS)
         self.client = client
         connection = .connecting
         stream?.stop()

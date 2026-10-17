@@ -12,16 +12,19 @@ final class APIClient {
     let host: String
     let port: Int
     let token: String
+    /// https/wss instead of http/ws.
+    let secure: Bool
     let baseURL: URL
     private let session: URLSession
     private let decoder = JSONDecoder()
 
-    init(host: String, port: Int, token: String) {
+    init(host: String, port: Int, token: String, secure: Bool = false) {
         self.host = host
         self.port = port
         self.token = token
+        self.secure = secure
         var comps = URLComponents()
-        comps.scheme = "http"
+        comps.scheme = secure ? "https" : "http"
         comps.host = host.contains(":") ? "[\(host)]" : host
         comps.port = port
         baseURL = comps.url ?? URL(string: "http://127.0.0.1:8787")!
@@ -59,7 +62,7 @@ final class APIClient {
 
     func webSocketRequest(_ path: String = "/api/ws", query: [String: String] = [:]) -> URLRequest {
         var comps = URLComponents(url: url(path, query: query), resolvingAgainstBaseURL: false)!
-        comps.scheme = "ws"
+        comps.scheme = secure ? "wss" : "ws"
         var req = URLRequest(url: comps.url!)
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         req.timeoutInterval = 15

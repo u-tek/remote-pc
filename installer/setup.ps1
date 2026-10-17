@@ -222,6 +222,24 @@ if ($want.Tailscale) {
       }
       if (-not $up.HasExited) { Stop-Process -Id $up.Id -Force -ErrorAction SilentlyContinue }
     }
+
+    # HTTPS certificates give the agent a real certificate for this PC's name. The iPhone app needs
+    # HTTPS when it runs inside LiveContainer, which refuses plain HTTP to Tailscale addresses.
+    if ((& $state) -eq 'Running') {
+      $certDomains = { try { return @(((Read-Native $ts @('status', '--json')) | ConvertFrom-Json).CertDomains | Where-Object { $_ }) } catch { return @() } }
+      $dnsSettings = 'https://login.tailscale.com/admin/dns'
+      if (@(& $certDomains).Count -gt 0) {
+        Ok "HTTPS on ($(@(& $certDomains)[0]))"
+      } elseif ($Unattended) {
+        Warn "HTTPS certificates are off for your tailnet. Turn them on at $dnsSettings"
+      } else {
+        Info 'Turn on HTTPS certificates for your tailnet, so the phone connects securely (the app needs it inside LiveContainer).'
+        Info 'On the page that opens, find "HTTPS Certificates" and click Enable HTTPS (turn on MagicDNS first if it asks).'
+        Start-Process $dnsSettings
+        if (Wait-Until { @(& $certDomains).Count -gt 0 } 'Waiting for HTTPS certificates...') { Ok 'HTTPS on' }
+        else { Warn "Skipped. Turn them on later at $dnsSettings, then reopen the Connect your iPhone page." }
+      }
+    }
   } catch { Warn "Tailscale: $_"; $Failures.Add('Tailscale') }
 }
 

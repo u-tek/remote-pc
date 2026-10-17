@@ -71,8 +71,8 @@ struct PairingSheet: View {
                     Form {
                         Section {
                             TextField("Name (e.g. Gaming PC)", text: $name)
-                            TextField("Tailscale IP, e.g. 100.101.102.103", text: $host)
-                                .keyboardType(.numbersAndPunctuation)
+                            TextField("PC address, e.g. desk.tail1234.ts.net", text: $host)
+                                .keyboardType(.URL)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                             TextField("Port", text: $port).keyboardType(.numberPad)
@@ -81,7 +81,7 @@ struct PairingSheet: View {
                                 .autocorrectionDisabled()
                                 .font(.body.monospaced())
                         } footer: {
-                            Text("Run `npm run pair` on the PC to see these details again. Tip: paste a whole remotepc:// link into the Token field.")
+                            Text("The PC's Connect your iPhone page (Start menu → Remote PC) shows these details. A ….ts.net address connects over HTTPS. Tip: paste a whole remotepc:// link into the Token field.")
                         }
                         if let error {
                             Section { Text(error).foregroundStyle(.red).font(.footnote) }
@@ -102,7 +102,7 @@ struct PairingSheet: View {
                             if let link = PairingLink(string: code) {
                                 scanned = true
                                 Haptics.success()
-                                model.addPC(name: link.name, host: link.host, port: link.port, token: link.token)
+                                model.addPC(name: link.name, host: link.host, port: link.port, token: link.token, secure: link.secure)
                                 dismiss()
                             } else {
                                 error = "That QR code is not a Remote PC pairing code."
@@ -139,17 +139,20 @@ struct PairingSheet: View {
 
     private func connectManually() async {
         if let link = PairingLink(string: token) {
-            model.addPC(name: link.name, host: link.host, port: link.port, token: link.token)
+            model.addPC(name: link.name, host: link.host, port: link.port, token: link.token, secure: link.secure)
             dismiss()
             return
         }
         testing = true
         defer { testing = false }
         let portNumber = Int(port) ?? 8787
-        let client = APIClient(host: host.trimmingCharacters(in: .whitespaces), port: portNumber, token: token.trimmingCharacters(in: .whitespacesAndNewlines))
+        let cleanHost = host.trimmingCharacters(in: .whitespaces)
+        // The PC's Tailscale HTTPS name (pc.tailnet.ts.net) means HTTPS.
+        let secure = cleanHost.lowercased().hasSuffix(".ts.net")
+        let client = APIClient(host: cleanHost, port: portNumber, token: token.trimmingCharacters(in: .whitespacesAndNewlines), secure: secure)
         do {
             let info = try await client.get("/api/info", as: AgentInfo.self)
-            model.addPC(name: name.isEmpty ? info.name : name, host: host, port: portNumber, token: token)
+            model.addPC(name: name.isEmpty ? info.name : name, host: cleanHost, port: portNumber, token: token, secure: secure)
             dismiss()
         } catch {
             self.error = "Could not reach the agent: \(error.localizedDescription)"

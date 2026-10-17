@@ -2,8 +2,10 @@ import path from 'node:path';
 import QRCode from 'qrcode';
 import type { Config } from './config.js';
 
-export function pairingUrl(config: Config, host: string): string {
+/** `secure`: the host is the PC's Tailscale HTTPS name, so the phone should use https and wss. */
+export function pairingUrl(config: Config, host: string, secure = false): string {
   const params = new URLSearchParams({ host, port: String(config.port), token: config.token, name: config.name });
+  if (secure) params.set('tls', '1');
   return `remotepc://pair?${params.toString()}`;
 }
 

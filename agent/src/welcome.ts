@@ -8,6 +8,7 @@ import { findTailscaleIPv4, planBind } from './net.js';
 import { pairingUrl } from './pairing.js';
 import { FfmpegManager } from './pc/ffmpeg.js';
 import { run } from './pc/proc.js';
+import { tailscaleTls } from './tls.js';
 
 /** The newest iPhone build, committed to main by CI. */
 const IPA_URL = process.env.REMOTE_PC_IPA_URL ?? 'https://raw.githubusercontent.com/u-tek/remote-pc/main/builds/RemotePC.ipa';
@@ -51,14 +52,14 @@ export async function writeWelcome(): Promise<string> {
   const plan = planBind(store.data.bind);
   const tailscale = findTailscaleIPv4();
   const ffmpeg = new FfmpegManager(configDir(), store.data.stream.ffmpeg);
-  const [running, opencode, ffmpegPath] = await Promise.all([agentRunning(store.data.port), hasOpencode(), ffmpeg.find()]);
+  const [running, opencode, ffmpegPath, tls] = await Promise.all([agentRunning(store.data.port), hasOpencode(), ffmpeg.find(), tailscaleTls()]);
   const claude = claudeInstalled(store.data.claude.executable);
   const [tsQr, sideQr, altQr, ipaQr, pairQr] = await Promise.all([
     qr(TAILSCALE_APP),
     qr(`sidestore://install?url=${encodeURIComponent(IPA_URL)}`),
     qr(`altstore://install?url=${encodeURIComponent(IPA_URL)}`),
     qr(IPA_URL),
-    qr(pairingUrl(store.data, plan.advertise)),
+    qr(tls.state === 'ready' ? pairingUrl(store.data, tls.domain, true) : pairingUrl(store.data, plan.advertise)),
   ]);
 
   const chip = (ok: boolean, yes: string, no: string) => `<span class="chip ${ok ? 'ok' : 'warn'}">${ok ? '✓' : '!'} ${esc(ok ? yes : no)}</span>`;
@@ -109,6 +110,7 @@ export async function writeWelcome(): Promise<string> {
   <div class="chips">
     ${chip(running, 'Agent running', 'Agent not running: start "Remote PC" from the Start menu')}
     ${chip(!!tailscale, `Tailscale connected (${tailscale ?? ''})`, 'Tailscale not signed in: only works on the same Wi-Fi')}
+    ${tailscale ? chip(tls.state === 'ready', 'Secure connection (HTTPS)', 'HTTPS off: see step 3') : ''}
     ${chip(claude, 'Claude Code', 'Claude Code not installed')}
     ${chip(opencode, 'OpenCode', 'OpenCode not installed')}
     ${chip(!!ffmpegPath, 'Live screen ready', 'Live screen downloads FFmpeg on first use')}
@@ -156,6 +158,11 @@ export async function writeWelcome(): Promise<string> {
       <p>Open Remote PC and tap <b>Pair with my PC</b>, or just scan with the iPhone camera (not for LiveContainer: scan inside the app).</p>
       <p class="warnline">This code is the key to your PC. Don't share it or post a screenshot of it.</p>
       ${tailscale ? '' : '<p class="muted">Tailscale isn\'t signed in on this PC, so the code points at your home network. Sign in to Tailscale and reopen this page to use the phone from anywhere.</p>'}
+      ${
+        tailscale && tls.state === 'off'
+          ? `<p class="warnline">HTTPS is off (${esc(tls.reason)}). Apps inside LiveContainer refuse plain HTTP, so turn on <b>HTTPS Certificates</b> in <a href="${esc(tls.enableUrl ?? 'https://login.tailscale.com/admin/dns')}">Tailscale's DNS settings</a>, then reopen this page and scan the new code.</p>`
+          : ''
+      }
     </div>
     <div class="qr">${pairQr}</div>
   </section>

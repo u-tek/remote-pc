@@ -69,5 +69,5 @@ export function planBind(bind: string): BindPlan {
     };
   }
   // A literal IP address.
-  return { listen: [bind, '127.0.0.1'], advertise: bind, forwardHost: bind };
+  return { listen: [...new Set([bind, '127.0.0.1'])], advertise: bind, forwardHost: bind };
 }

@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 import { writeFileSync } from 'node:fs';
-import http from 'node:http';
 import path from 'node:path';
 import { buildAgent, VERSION } from './app.js';
 import { ConfigStore, configDir, newToken } from './config.js';
 import { addInstalledTools } from './install.js';
+import { AgentListener } from './listen.js';
 import { log, setLogFile } from './log.js';
 import { planBind } from './net.js';
 import { pairingUrl, showPairing } from './pairing.js';
 import { FfmpegManager } from './pc/ffmpeg.js';
 import { installStartup, uninstallStartup } from './startup.js';
+import { tailscaleTls } from './tls.js';
 import { ensureAgentRunning, openFile, writeWelcome } from './welcome.js';
 
 const HELP = `Remote PC agent ${VERSION}
@@ -36,12 +37,10 @@ async function start() {
   if (plan.warning) log.warn(plan.warning);
 
   const agent = buildAgent({ store, plan });
-  const servers: http.Server[] = [];
+  const listeners: AgentListener[] = [];
   for (const host of plan.listen) {
-    const server = http.createServer((req, res) => void agent.app.handler(req, res));
-    server.on('upgrade', agent.app.upgrade);
-    // Long agent turns and big file transfers: no request timeout.
-    server.requestTimeout = 0;
+    const listener = new AgentListener((req, res) => void agent.app.handler(req, res), agent.app.upgrade);
+    const server = listener.server;
     await new Promise<void>((resolve, reject) => {
       server.once('error', reject);
       server.listen(store.data.port, host, () => {
@@ -55,7 +54,7 @@ async function start() {
       }
       throw err;
     });
-    servers.push(server);
+    listeners.push(listener);
   }
 
   log.info(`Remote PC agent ${VERSION} listening on ${plan.listen.map((h) => `${h}:${store.data.port}`).join(', ')}`);
@@ -66,11 +65,29 @@ async function start() {
     JSON.stringify({ url: `ws://127.0.0.1:${store.data.port}/api/sdk`, token: store.data.ui.sdkToken, protocol: 1 }, null, 2),
   );
   await agent.warmUp();
-  if (process.stdout.isTTY) await showPairing(pairingUrl(store.data, plan.advertise), configDir());
+
+  // HTTPS on the same port with Tailscale's certificate for this PC, renewed twice a day.
+  let secureHost: string | undefined;
+  const refreshTls = async () => {
+    if (store.data.bind === 'localhost') return;
+    const tls = await tailscaleTls().catch((err: Error) => ({ state: 'off' as const, reason: err.message }));
+    if (tls.state === 'ready') {
+      for (const l of listeners) l.setTls(tls);
+      if (secureHost !== tls.domain) log.info(`HTTPS on: https://${tls.domain}:${store.data.port}`);
+      secureHost = tls.domain;
+    } else if (!secureHost) {
+      log.info(`HTTPS off (${tls.reason}); the phone connects over plain HTTP`);
+    }
+  };
+  await refreshTls();
+  // While HTTPS is off, look again every minute so turning on HTTPS certificates takes effect soon.
+  const scheduleTls = () => setTimeout(() => void refreshTls().finally(scheduleTls), secureHost ? 12 * 60 * 60_000 : 60_000).unref();
+  scheduleTls();
+  if (process.stdout.isTTY) await showPairing(pairingUrl(store.data, secureHost ?? plan.advertise, !!secureHost), configDir());
 
   const shutdown = async () => {
     log.info('shutting down');
-    for (const s of servers) s.close();
+    for (const l of listeners) l.close();
     await agent.shutdown();
     process.exit(0);
   };
@@ -86,7 +103,9 @@ async function pair(newTok: boolean) {
   }
   const plan = planBind(store.data.bind);
   if (plan.warning) console.warn(plan.warning);
-  await showPairing(pairingUrl(store.data, plan.advertise), configDir());
+  const tls = await tailscaleTls();
+  if (tls.state === 'off') console.warn(`HTTPS off: ${tls.reason}${tls.enableUrl ? ` (turn it on at ${tls.enableUrl})` : ''}`);
+  await showPairing(tls.state === 'ready' ? pairingUrl(store.data, tls.domain, true) : pairingUrl(store.data, plan.advertise), configDir());
 }
 
 process.on('unhandledRejection', (err) => log.error('unhandled rejection', err));

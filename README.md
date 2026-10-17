@@ -48,7 +48,7 @@ and run it. No administrator account is needed; Windows asks once for the firewa
 | Part | What it does |
 | --- | --- |
 | Remote PC agent | Runs in the background with its own Node.js; starts when you sign in |
-| Tailscale | Lets the phone reach the PC from anywhere; opens the Tailscale sign-in |
+| Tailscale | Lets the phone reach the PC from anywhere; opens the Tailscale sign-in, then the switch for HTTPS certificates |
 | Claude Code (+ Git for Windows) | Installed with Anthropic's official installer; opens the Claude sign-in |
 | OpenCode | Downloaded into the app folder; opens `opencode auth login` to pick a provider |
 | FFmpeg | Downloaded now so the live screen starts instantly |
@@ -115,6 +115,9 @@ apps active). Remote PC needs one, and updates and refreshes reuse it. If you ha
 - **LiveContainer** (recommended): install the IPA inside [LiveContainer](https://github.com/LiveContainer/LiveContainer),
   which runs apps without App IDs of their own. iloader can install *LiveContainer + SideStore*
   together. Pair by scanning inside the app; the Camera app can't open apps inside LiveContainer.
+  LiveContainer only lets apps connect over **HTTPS**, so turn on *HTTPS Certificates* in
+  [Tailscale's DNS settings](https://login.tailscale.com/admin/dns) (setup offers this) and pair
+  with the code shown afterwards; it points at your PC's `….ts.net` name.
 - Wait for one to expire: SideStore/AltStore → Settings → *App IDs* shows when each frees up.
 - Sign in to SideStore with a second (free) Apple ID, which has its own 10.
 
@@ -180,6 +183,9 @@ Other commands: `node dist\index.js welcome` (the Connect your iPhone page), `np
 ## Security notes
 
 - Every request needs the pairing token. After 10 failed attempts an address is blocked for 5 minutes.
+- With *HTTPS Certificates* on in Tailscale, the agent also speaks HTTPS on the same port, using
+  Tailscale's Let's Encrypt certificate for the PC's `….ts.net` name (renewed automatically), and
+  new pairing codes use it. Turning it on publishes that name in public certificate logs.
 - By default the agent only listens on its Tailscale address (plus `localhost`), so only devices on your tailnet can reach it. Traffic is encrypted by Tailscale (WireGuard).
 - The paired phone can do anything your Windows account can: read and write files, run agents, end processes. Treat the token like a password; rotate it with `npm run pair -- --new-token` if the phone is lost.
 - The live desktop uses the same token-protected connection; nothing streams unless the app is open on your phone.
